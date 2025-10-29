@@ -67,36 +67,62 @@ for i, (nome, df) in enumerate(nos.items()):
         st.metric(label=f"{nome}", value=f"Hash final: {ultimo_hash}")
 
 # ============================================================
-# 🧠 PROPOR NOVO BLOCO
+# 🧠 PROPOR NOVO BLOCO — VERSÃO DIDÁTICA
 # ============================================================
 st.markdown("---")
-st.subheader("🧠 Propor Novo Bloco")
+st.subheader("🧠 Propor Novo Bloco (Explicativo)")
 
-evento_texto = st.text_input("Descrição do novo evento:", "Entrega #104 — Saiu do depósito — SP → MG")
-propositor = st.selectbox("Selecione o nó propositor:", list(nos.keys()))
-quorum = st.slider("Defina o quorum mínimo:", 1, len(nos), 2)
+evento_texto = st.text_input("📝 Descrição do novo evento:", "Entrega #104 — Saiu do depósito — SP → MG")
+propositor = st.selectbox("👤 Selecione o nó propositor:", list(nos.keys()))
+quorum = st.slider("📊 Defina o quorum mínimo:", 1, len(nos), 2)
 
-if st.button("🚀 Propor e Validar"):
+if st.button("🚀 Iniciar Simulação de Consenso"):
+    st.markdown("### 🧱 Etapa 1: Criação da Proposta")
+    st.info(f"📦 {propositor} está propondo o bloco: **'{evento_texto}'**")
+
     hash_anterior = list(nos.values())[0].iloc[-1]["hash_atual"]
+    st.write(f"🔗 Hash anterior: `{hash_anterior[:16]}...`")
+
     proposta = propor_bloco(propositor, evento_texto, hash_anterior)
+
+    st.markdown("### 🔍 Etapa 2: Votação dos Nós")
+    st.write("Cada nó agora vai recalcular o hash do bloco e decidir se aceita ou recusa a proposta...")
+
+    # Executa a votação simulada
     proposta = votar_proposta(proposta, nos, chaves)
+
+    st.markdown("#### 📊 Resultado das Assinaturas")
+    assinaturas = []
+    for no, assinatura in proposta["assinaturas"].items():
+        if assinatura.startswith("Recusado"):
+            st.error(f"❌ {no} recusou o bloco (hash divergente ou rejeição simulada).")
+            assinaturas.append({"Nó": no, "Assinatura": "❌ Rejeitado"})
+        else:
+            st.success(f"✅ {no} validou e assinou o bloco.")
+            assinaturas.append({"Nó": no, "Assinatura": assinatura[:20] + "..."})
+
+    st.dataframe(pd.DataFrame(assinaturas), use_container_width=True)
+
+    st.markdown("### 🧮 Etapa 3: Cálculo do Consenso (Quorum)")
+    st.write(f"É necessário **{quorum}** de {len(nos)} nós para aprovar o bloco.")
 
     sucesso = aplicar_consenso(proposta, nos, quorum=quorum)
 
     if sucesso:
+        st.balloons()
         st.success("✅ Consenso alcançado! O bloco foi adicionado em todos os nós.")
         st.session_state.historico.append({
             "evento": evento_texto,
             "propositor": propositor,
-            "assinaturas": len(proposta["assinaturas"]),
+            "assinaturas": len([a for a in proposta['assinaturas'].values() if not a.startswith('Recusado')]),
             "status": "Aceito"
         })
     else:
-        st.error("❌ Quorum insuficiente. O bloco foi rejeitado.")
+        st.warning("⚠️ Quorum insuficiente. O bloco foi rejeitado.")
         st.session_state.historico.append({
             "evento": evento_texto,
             "propositor": propositor,
-            "assinaturas": len(proposta["assinaturas"]),
+            "assinaturas": len([a for a in proposta['assinaturas'].values() if not a.startswith('Recusado')]),
             "status": "Rejeitado"
         })
 
