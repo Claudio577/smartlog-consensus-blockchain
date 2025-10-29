@@ -119,3 +119,53 @@ if validar_consenso(nos):
     st.success("🟢 Todos os nós estão sincronizados.")
 else:
     st.warning("🟠 Divergência detectada entre os nós!")
+
+# ============================================================
+# 🧩 DEMONSTRAÇÃO DE IMUTABILIDADE (Hash Validation)
+# ============================================================
+st.markdown("---")
+st.subheader("🧩 Demonstração de Validação de Hash entre Nós")
+st.markdown("""
+Nesta seção, cada nó recalcula o hash do mesmo bloco.
+Se todos gerarem o mesmo hash → o bloco é íntegro ✅  
+Se um nó tiver um dado diferente → divergência é detectada ❌
+---
+""")
+
+import hashlib
+
+def gerar_hash(conteudo, hash_anterior):
+    return hashlib.sha256((conteudo + hash_anterior).encode()).hexdigest()
+
+evento = st.text_input("📦 Evento proposto:", "Entrega #200 — Saiu do depósito")
+hash_anterior = st.text_input("🔗 Hash anterior:", "abc123")
+erro_nodeC = st.checkbox("⚠️ Simular erro no Node_C (dados alterados)")
+
+# Simula 3 nós
+nodos = {
+    "Node_A": evento,
+    "Node_B": evento,
+    "Node_C": evento.replace("depósito", "deposito") if erro_nodeC else evento
+}
+
+# Calcula hash de cada nó
+resultados = []
+for nome, conteudo in nodos.items():
+    hash_calc = gerar_hash(conteudo, hash_anterior)
+    resultados.append({
+        "Nó": nome,
+        "Conteúdo": conteudo,
+        "Hash gerado": hash_calc[:16] + "...",
+        "Status": "🟢 Igual" if conteudo == evento else "🔴 Diferente"
+    })
+
+df = pd.DataFrame(resultados)
+st.dataframe(df, use_container_width=True)
+
+# Validação de consenso
+hashes_unicos = {gerar_hash(c, hash_anterior) for c in nodos.values()}
+if len(hashes_unicos) == 1:
+    st.success("✅ Todos os nós calcularam o mesmo hash. O bloco é válido e foi aceito!")
+else:
+    st.error("⚠️ Hashes divergentes detectados! O bloco foi rejeitado pelo consenso.")
+
