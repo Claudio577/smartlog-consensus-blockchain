@@ -121,7 +121,7 @@ nenhum dado pode ser modificado sem que toda a rede perceba imediatamente.
     sucesso = aplicar_consenso(proposta, nos, quorum=quorum)
 
     if sucesso:
-        st.balloons()
+
         st.success("✅ Consenso alcançado! O bloco foi adicionado em todos os nós.")
         st.session_state.historico.append({
             "evento": evento_texto,
