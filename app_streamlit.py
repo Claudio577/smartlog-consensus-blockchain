@@ -86,7 +86,19 @@ if st.button("🚀 Iniciar Simulação de Consenso"):
     proposta = propor_bloco(propositor, evento_texto, hash_anterior)
 
     st.markdown("### 🔍 Etapa 2: Votação dos Nós")
-    st.write("Cada nó agora vai recalcular o hash do bloco e decidir se aceita ou recusa a proposta...")
+    st.markdown("""
+🧮 **Etapa técnica: Recalcular o hash**
+
+Cada nó recebe o novo bloco proposto e **refaz o cálculo do hash** localmente,
+usando o mesmo conteúdo e o hash anterior da cadeia.
+
+- Se o hash que ele calcular for **idêntico** ao hash enviado → o bloco é íntegro ✅  
+- Se for **diferente**, significa que **os dados foram alterados** e o nó **recusa o bloco** ❌  
+
+Essa verificação é o que garante a **imutabilidade**:  
+nenhum dado pode ser modificado sem que toda a rede perceba imediatamente.
+""")
+
 
     # Executa a votação simulada
     proposta = votar_proposta(proposta, nos, chaves)
