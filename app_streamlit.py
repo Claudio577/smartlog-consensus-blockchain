@@ -116,11 +116,14 @@ nenhum dado pode ser modificado sem que toda a rede perceba imediatamente.
     st.dataframe(pd.DataFrame(assinaturas), use_container_width=True)
 
     st.markdown("### 🧮 Etapa 3: Cálculo do Consenso (Quorum)")
-    st.write(f"É necessário **{quorum}** de {len(nos)} nós para aprovar o bloco.")
+st.write(f"É necessário **{quorum}** de {len(nos)} nós para aprovar o bloco.")
 
-    sucesso = aplicar_consenso(proposta, nos, quorum=quorum)
+sucesso = aplicar_consenso(proposta, nos, quorum=quorum)
 
-    if sucesso:
+# ============================================================
+# 🧩 RESULTADO DO CONSENSO E SALVAMENTO NO FIREBASE
+# ============================================================
+if sucesso:
     st.success("✅ Consenso alcançado! O bloco foi adicionado em todos os nós.")
     st.session_state.historico.append({
         "evento": evento_texto,
@@ -130,9 +133,12 @@ nenhum dado pode ser modificado sem que toda a rede perceba imediatamente.
     })
 
     # ☁️ Salva automaticamente no Firebase
-    blockchain_atual = nos["Node_A"]  # todos os nós estão iguais
-    salvar_blockchain_firestore(blockchain_atual)
-    st.info("☁️ Blockchain sincronizada com o Firestore (nuvem)!")
+    try:
+        blockchain_atual = nos["Node_A"]  # todos os nós estão iguais após consenso
+        salvar_blockchain_firestore(blockchain_atual)
+        st.info("☁️ Blockchain sincronizada com o Firestore (nuvem)!")
+    except Exception as e:
+        st.error(f"Erro ao salvar no Firestore: {e}")
 
 else:
     st.warning("⚠️ Quorum insuficiente. O bloco foi rejeitado.")
@@ -143,8 +149,6 @@ else:
         "status": "Rejeitado"
     })
 
-
-
 # ============================================================
 # 📜 HISTÓRICO DE CONSENSOS
 # ============================================================
@@ -153,6 +157,10 @@ if st.session_state.historico:
     st.subheader("📜 Histórico de Propostas")
     historico_df = pd.DataFrame(st.session_state.historico)
     st.dataframe(historico_df, use_container_width=True)
+
+# ============================================================
+# ☁️ FIRESTORE — SINCRONIZAÇÃO MANUAL
+# ============================================================
 st.markdown("---")
 st.subheader("☁️ Firestore — Sincronização Manual")
 
