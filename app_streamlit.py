@@ -173,6 +173,7 @@ with tab_main:
 
 
 
+
     # Status de consenso
     st.markdown("---")
     st.subheader("🔍 Status da Rede")
