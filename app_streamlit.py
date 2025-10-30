@@ -121,27 +121,28 @@ nenhum dado pode ser modificado sem que toda a rede perceba imediatamente.
     sucesso = aplicar_consenso(proposta, nos, quorum=quorum)
 
     if sucesso:
+    st.success("✅ Consenso alcançado! O bloco foi adicionado em todos os nós.")
+    st.session_state.historico.append({
+        "evento": evento_texto,
+        "propositor": propositor,
+        "assinaturas": len([a for a in proposta['assinaturas'].values() if not a.startswith('Recusado')]),
+        "status": "Aceito"
+    })
 
-        st.success("✅ Consenso alcançado! O bloco foi adicionado em todos os nós.")
-        st.session_state.historico.append({
-            "evento": evento_texto,
-            "propositor": propositor,
-            "assinaturas": len([a for a in proposta['assinaturas'].values() if not a.startswith('Recusado')]),
-            "status": "Aceito"
-        })
-            # ☁️ Salva automaticamente no Firebase
+    # ☁️ Salva automaticamente no Firebase
     blockchain_atual = nos["Node_A"]  # todos os nós estão iguais
     salvar_blockchain_firestore(blockchain_atual)
     st.info("☁️ Blockchain sincronizada com o Firestore (nuvem)!")
 
-    else:
-        st.warning("⚠️ Quorum insuficiente. O bloco foi rejeitado.")
-        st.session_state.historico.append({
-            "evento": evento_texto,
-            "propositor": propositor,
-            "assinaturas": len([a for a in proposta['assinaturas'].values() if not a.startswith('Recusado')]),
-            "status": "Rejeitado"
-        })
+else:
+    st.warning("⚠️ Quorum insuficiente. O bloco foi rejeitado.")
+    st.session_state.historico.append({
+        "evento": evento_texto,
+        "propositor": propositor,
+        "assinaturas": len([a for a in proposta['assinaturas'].values() if not a.startswith('Recusado')]),
+        "status": "Rejeitado"
+    })
+
 
 # ============================================================
 # 📜 HISTÓRICO DE CONSENSOS
