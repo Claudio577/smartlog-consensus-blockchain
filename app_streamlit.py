@@ -200,62 +200,89 @@ with tab_main:
     st.dataframe(pd.DataFrame(resultados), use_container_width=True)
 
 # ============================================================
-# 🚨 ABA 2 — SIMULADOR DE FRAUDE / ATAQUE
+# 🚨 ABA 2 — SIMULADOR DE FRAUDE / NÓ MALICIOSO
 # ============================================================
 with tab_fraude:
     st.header("🚨 Simulador de Fraude / Nó Malicioso")
-    st.markdown(
-        "Demonstração didática de corrupção proposital de um nó. "
-        "Permite ver como o consenso detecta e recupera discrepâncias."
-    )
+    st.markdown("""
+Demonstração **didática** de corrupção proposital em um nó.  
+Permite observar como a integridade dos dados é quebrada e como o sistema detecta e recupera divergências.
+---
+""")
 
     colA, colB, colC = st.columns(3)
     with colA:
-        node_to_corrupt = st.selectbox("Escolha o nó:", list(nos.keys()), key="fraude_node")
-        corrupt_type = st.radio("Tipo de corrupção:", ["Alterar último bloco (dados)", "Alterar hash final"])
+        node_to_corrupt = st.selectbox("🧩 Escolha o nó para corromper:", list(nos.keys()), key="fraude_node")
+        corrupt_type = st.radio("💥 Tipo de corrupção:", ["Alterar último bloco (dados)", "Alterar hash final"])
 
+    # ============================
+    # 🧨 Simular Ataque
+    # ============================
     with colB:
-        if st.button("💥 Corromper nó (simular ataque)", key="fraude_attack"):
+        if st.button("💣 Corromper nó (simular ataque)", key="fraude_attack"):
             df = nos[node_to_corrupt].copy()
             if len(df) > 0:
                 idx = len(df) - 1
+                # Salva o estado original do último bloco
+                original = df.iloc[idx].to_dict()
+
+                # --- Aplica corrupção ---
                 if corrupt_type == "Alterar último bloco (dados)":
                     df.at[idx, "etapa"] = str(df.at[idx, "etapa"]) + " (ALTERADO MALICIOSAMENTE)"
                     conteudo = f"{df.at[idx,'id_entrega']}-{df.at[idx,'source_center']}-{df.at[idx,'destination_name']}-{df.at[idx,'etapa']}-{df.at[idx,'timestamp']}-{df.at[idx,'risco']}"
                     df.at[idx, "hash_atual"] = sb.gerar_hash(conteudo, df.at[idx, "hash_anterior"])
                 else:
-                    df.at[idx, "hash_atual"] = sb.gerar_hash("ataque", df.at[idx, "hash_anterior"])
-                nos[node_to_corrupt] = df
-                st.error(f"⚠️ {node_to_corrupt} corrompido (simulado).")
-                st.dataframe(df.tail(1))
-            else:
-                st.warning("Nó vazio — nada a corromper.")
+                    df.at[idx, "hash_atual"] = sb.gerar_hash("ATAQUE_MALICIOSO", df.at[idx, "hash_anterior"])
 
+                # Atualiza nó
+                nos[node_to_corrupt] = df
+                modificado = df.iloc[idx].to_dict()
+
+                # --- Mostra comparação didática ---
+                st.error(f"⚠️ {node_to_corrupt} corrompido (simulado).")
+                comparacao = pd.DataFrame([
+                    {"Campo": "Etapa", "Antes": original["etapa"], "Depois": modificado["etapa"]},
+                    {"Campo": "Hash Atual", "Antes": original["hash_atual"][:16], "Depois": modificado["hash_atual"][:16]},
+                    {"Campo": "Hash Anterior", "Antes": original["hash_anterior"][:16], "Depois": modificado["hash_anterior"][:16]},
+                ])
+                st.dataframe(comparacao, use_container_width=True)
+
+            else:
+                st.warning("⚠️ Este nó não contém blocos para corromper.")
+
+    # ============================
+    # 🔍 Detectar divergências
+    # ============================
     with colC:
         if st.button("🔍 Detectar divergência", key="fraude_detect"):
             if validar_consenso(nos):
-                st.success("🟢 Nenhuma divergência detectada.")
+                st.success("🟢 Todos os nós estão íntegros e sincronizados.")
             else:
-                st.warning("🟠 Divergência encontrada!")
+                st.warning("🟠 Divergência detectada entre os nós!")
                 corrompidos = detectar_no_corrompido(nos)
-                st.write("Nós corrompidos:", corrompidos)
-                hashes = {n: df.iloc[-1]["hash_atual"] for n, df in nos.items()}
-                st.dataframe(pd.DataFrame(hashes.items(), columns=["Nó", "Hash atual"]))
+                st.write("Nós corrompidos identificados:", corrompidos)
+                ultimos = {n: df.iloc[-1]["hash_atual"][:16] for n, df in nos.items()}
+                st.dataframe(pd.DataFrame(list(ultimos.items()), columns=["Nó", "Hash final"]), use_container_width=True)
 
+    # ============================
+    # 🔁 Recuperação e Resumo
+    # ============================
     st.markdown("---")
-    if st.button("🔁 Recuperar nós corrompidos (restaurar da maioria)", key="fraude_recover"):
+    if st.button("🧹 Recuperar nós corrompidos (copiar da maioria)", key="fraude_recover"):
         try:
             ultimos = {n: df.iloc[-1]["hash_atual"] for n, df in nos.items()}
             freq = {h: list(ultimos.values()).count(h) for h in ultimos.values()}
             hash_ok = max(freq, key=freq.get)
             nos = recuperar_no(nos, hash_ok)
-            st.success("✅ Nós restaurados com sucesso.")
+            st.success("✅ Nós corrompidos restaurados com sucesso usando a blockchain da maioria.")
         except Exception as e:
-            st.error(f"Erro ao restaurar: {e}")
+            st.error(f"❌ Erro ao restaurar nós: {e}")
 
-    if st.button("📊 Mostrar resumo das blockchains", key="fraude_summary"):
+    if st.button("📊 Mostrar resumo das blockchains (por nó)", key="fraude_summary"):
         for nome, df in nos.items():
             st.markdown(f"**{nome}** — {len(df)} blocos — hash final `{df.iloc[-1]['hash_atual'][:16]}...`")
-            st.dataframe(df.tail(2))
-
+            st.dataframe(
+                df[["bloco_id", "id_entrega", "source_center", "destination_name", "etapa", "hash_atual"]].tail(2),
+                use_container_width=True
+            )
 
