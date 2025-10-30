@@ -35,10 +35,21 @@ db = init_firebase()
 # ============================================================
 
 def salvar_blockchain_firestore(df_blockchain):
-    """Salva o dataframe da blockchain no Firestore."""
+    """Salva o dataframe da blockchain no Firestore (corrigido para timestamps)."""
     try:
-        data = df_blockchain.to_dict(orient="records")
+        # 🔹 Cria cópia segura para evitar erros de tipo
+        df_safe = df_blockchain.copy()
+
+        # 🔹 Converte timestamps problemáticos (datetime/NaT) em string
+        if "timestamp" in df_safe.columns:
+            df_safe["timestamp"] = df_safe["timestamp"].astype(str)
+
+        # 🔹 Converte para lista de dicionários (compatível com Firestore)
+        data = df_safe.to_dict(orient="records")
+
+        # 🔹 Salva no Firestore
         db.collection("blockchains").document("rede_principal").set({"dados": data})
+
         st.success("✅ Blockchain salva no Firestore com sucesso!")
     except Exception as e:
         st.error(f"❌ Erro ao salvar blockchain no Firestore: {e}")
