@@ -9,6 +9,7 @@ import pandas as pd
 import hashlib
 from datetime import datetime
 import copy
+from firebase_utils import salvar_blockchain_firestore, carregar_blockchain_firestore, limpar_blockchain_firestore
 
 # ===========================================================
 # 🔹 Funções de Hash e Blockchain
