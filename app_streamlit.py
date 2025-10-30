@@ -164,17 +164,14 @@ with tab_main:
         if st.button("💾 Salvar Manualmente"):
             salvar_blockchain_firestore(nos["Node_A"])
     with col3:
-        if st.button("🧹 Resetar Firestore e Sessão"):
+    if st.button("🧹 Resetar Firestore e Sessão"):
         limpar_blockchain_firestore()
-            for key in list(st.session_state.keys()):
-                del st.session_state[key]
-            st.warning("⚠️ Blockchain removida do Firestore e sessão reiniciada. Clique em *Rerun* acima.")
-            st.stop()
+        for key in list(st.session_state.keys()):
+            del st.session_state[key]
+        st.warning("⚠️ Blockchain removida do Firestore e sessão reiniciada. Clique em *Rerun* acima.")
+        st.stop()
 
-
-
-
-    # Status de consenso
+  # Status de consenso
     st.markdown("---")
     st.subheader("🔍 Status da Rede")
     if validar_consenso(nos):
