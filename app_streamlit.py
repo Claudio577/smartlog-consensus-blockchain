@@ -13,6 +13,11 @@ from smartlog_blockchain import (
     simular_chaves_privadas, propor_bloco, votar_proposta,
     aplicar_consenso
 )
+from firebase_utils import (
+    salvar_blockchain_firestore,
+    carregar_blockchain_firestore,
+    limpar_blockchain_firestore
+)
 
 # ============================================================
 # 🎨 CONFIGURAÇÕES INICIAIS
