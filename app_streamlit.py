@@ -8,11 +8,18 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
+import smartlog_blockchain as sb
+
 from smartlog_blockchain import (
-    criar_blockchain_inicial, criar_nos, validar_consenso,
-    simular_chaves_privadas, propor_bloco, votar_proposta,
+    criar_blockchain_inicial,
+    criar_nos,
+    validar_consenso,
+    simular_chaves_privadas,
+    propor_bloco,
+    votar_proposta,
     aplicar_consenso
 )
+
 from firebase_utils import (
     salvar_blockchain_firestore,
     carregar_blockchain_firestore,
