@@ -220,7 +220,7 @@ with tab_fraude:
             if len(df) > 0:
                 idx = len(df) - 1
                 if corrupt_type == "Alterar último bloco (dados)":
-                    df.at[idx, "etapa"] += " (ALTERADO MALICIOSAMENTE)"
+                    df.at[idx, "etapa"] = str(df.at[idx, "etapa"]) + " (ALTERADO MALICIOSAMENTE)"
                     conteudo = f"{df.at[idx,'id_entrega']}-{df.at[idx,'source_center']}-{df.at[idx,'destination_name']}-{df.at[idx,'etapa']}-{df.at[idx,'timestamp']}-{df.at[idx,'risco']}"
                     df.at[idx, "hash_atual"] = sb.gerar_hash(conteudo, df.at[idx, "hash_anterior"])
                 else:
