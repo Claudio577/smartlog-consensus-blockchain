@@ -150,5 +150,18 @@ def aplicar_consenso(proposta, nos, quorum=2):
             nos[nome] = pd.concat([nos[nome], pd.DataFrame([novo])], ignore_index=True)
         return True
     return False
+__all__ = [
+    "gerar_hash",
+    "criar_blockchain_inicial",
+    "validar_blockchain",
+    "criar_nos",
+    "validar_consenso",
+    "detectar_no_corrompido",
+    "recuperar_no",
+    "simular_chaves_privadas",
+    "propor_bloco",
+    "votar_proposta",
+    "aplicar_consenso"
+]
 
 
