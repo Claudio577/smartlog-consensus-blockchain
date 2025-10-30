@@ -94,18 +94,18 @@ with tab_main:
     quorum = st.slider("📊 Defina o quorum mínimo:", 1, len(nos), 2)
 
     if st.button("🚀 Iniciar Simulação de Consenso"):
-    st.markdown("### 🧱 Etapa 1: Criação da Proposta")
-    st.info(f"📦 {propositor} está propondo o bloco: **'{evento_texto}'**")
+        st.markdown("### 🧱 Etapa 1: Criação da Proposta")
+        st.info(f"📦 {propositor} está propondo o bloco: **'{evento_texto}'**")
 
-    # 🔗 Usa o último hash comum da maioria dos nós (não só o Node_A)
-    hashes_finais = [df.iloc[-1]["hash_atual"] for df in nos.values()]
-    # Escolhe o hash mais frequente (a maioria)
-    hash_anterior = max(set(hashes_finais), key=hashes_finais.count)
+        # 🔗 Usa o último hash comum da maioria dos nós (não só o Node_A)
+        hashes_finais = [df.iloc[-1]["hash_atual"] for df in nos.values()]
+        # Escolhe o hash mais frequente (a maioria)
+        hash_anterior = max(set(hashes_finais), key=hashes_finais.count)
 
-    proposta = propor_bloco(propositor, evento_texto, hash_anterior)
+        proposta = propor_bloco(propositor, evento_texto, hash_anterior)
 
-    st.markdown("### 🔍 Etapa 2: Votação dos Nós")
-    proposta = votar_proposta(proposta, nos, chaves)
+        st.markdown("### 🔍 Etapa 2: Votação dos Nós")
+        proposta = votar_proposta(proposta, nos, chaves)
 
 
         st.markdown("#### 📊 Resultado das Assinaturas")
