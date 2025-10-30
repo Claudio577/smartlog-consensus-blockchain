@@ -129,6 +129,11 @@ nenhum dado pode ser modificado sem que toda a rede perceba imediatamente.
             "assinaturas": len([a for a in proposta['assinaturas'].values() if not a.startswith('Recusado')]),
             "status": "Aceito"
         })
+            # ☁️ Salva automaticamente no Firebase
+    blockchain_atual = nos["Node_A"]  # todos os nós estão iguais
+    salvar_blockchain_firestore(blockchain_atual)
+    st.info("☁️ Blockchain sincronizada com o Firestore (nuvem)!")
+
     else:
         st.warning("⚠️ Quorum insuficiente. O bloco foi rejeitado.")
         st.session_state.historico.append({
@@ -146,6 +151,26 @@ if st.session_state.historico:
     st.subheader("📜 Histórico de Propostas")
     historico_df = pd.DataFrame(st.session_state.historico)
     st.dataframe(historico_df, use_container_width=True)
+st.markdown("---")
+st.subheader("☁️ Firestore — Sincronização Manual")
+
+col1, col2, col3 = st.columns(3)
+with col1:
+    if st.button("📥 Carregar da Nuvem"):
+        df_cloud = carregar_blockchain_firestore()
+        if df_cloud is not None:
+            st.dataframe(df_cloud)
+            st.success("✅ Blockchain carregada da nuvem!")
+        else:
+            st.warning("⚠️ Nenhum dado encontrado no Firestore.")
+with col2:
+    if st.button("💾 Salvar Manualmente"):
+        salvar_blockchain_firestore(nos["Node_A"])
+        st.success("✅ Blockchain salva no Firestore!")
+with col3:
+    if st.button("🧹 Resetar Firestore"):
+        limpar_blockchain_firestore()
+        st.warning("⚠️ Blockchain removida do Firestore!")
 
 # ============================================================
 # 🔍 STATUS DE CONSENSO
