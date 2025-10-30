@@ -193,37 +193,29 @@ with col3:
 
 
 
-  # Status de consenso
-    st.markdown("---")
-    st.subheader("🔍 Status da Rede")
-    if validar_consenso(nos):
-        st.success("🟢 Todos os nós estão sincronizados.")
-    else:
-        st.warning("🟠 Divergência detectada entre os nós!")
+# ============================================================
+# 🔍 STATUS DE CONSENSO / REDE
+# ============================================================
+st.markdown("---")
+st.subheader("🔍 Status da Rede")
 
-    # Demonstração hash
-    st.markdown("---")
-    st.subheader("🧩 Demonstração de Validação de Hash")
-    evento = st.text_input("📦 Evento proposto:", "Entrega #200 — Saiu do depósito")
-    hash_ant = st.text_input("🔗 Hash anterior:", "abc123")
-    erro_nodeC = st.checkbox("⚠️ Simular erro no Node_C (dados alterados)")
+# Centraliza visualmente (mantém no eixo principal, não em colunas)
+st.markdown("Verificação automática de integridade entre os nós da rede blockchain:")
 
-    nodos = {
-        "Node_A": evento,
-        "Node_B": evento,
-        "Node_C": evento.replace("depósito", "deposito") if erro_nodeC else evento
-    }
+# Verifica se há divergências
+if validar_consenso(nos):
+    st.success("🟢 Todos os nós estão sincronizados e íntegros.")
+else:
+    st.warning("🟠 Divergência detectada entre os nós!")
 
-    resultados = []
-    for nome, conteudo in nodos.items():
-        hash_calc = hashlib.sha256((conteudo + hash_ant).encode()).hexdigest()
-        resultados.append({
-            "Nó": nome,
-            "Conteúdo": conteudo,
-            "Hash gerado": hash_calc[:16] + "...",
-            "Status": "🟢 Igual" if conteudo == evento else "🔴 Diferente"
-        })
-    st.dataframe(pd.DataFrame(resultados), use_container_width=True)
+# Mostra hash final de cada nó lado a lado
+st.markdown("### 📊 Hash Final por Nó")
+hashes_finais = {nome: df.iloc[-1]["hash_atual"][:16] for nome, df in nos.items()}
+st.dataframe(
+    pd.DataFrame(list(hashes_finais.items()), columns=["Nó", "Hash Final"]),
+    use_container_width=True
+)
+
 
 # ============================================================
 # 🚨 ABA 2 — SIMULADOR DE FRAUDE / NÓ MALICIOSO
