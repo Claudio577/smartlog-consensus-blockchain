@@ -241,3 +241,75 @@ if len(hashes_unicos) == 1:
 else:
     st.error("⚠️ Hashes divergentes detectados! O bloco foi rejeitado pelo consenso.")
 
+# --- criar duas abas: Principal e Simulador de Fraude ---
+tab_main, tab_sim = st.tabs(["🔗 Main (Consenso)", "🚨 Simulador de Fraude (Didático)"])
+
+with tab_main:
+    # coloque aqui todo o conteúdo atual da sua página principal
+    # (visualização dos nós, propor bloco, histórico, Firestore controls ...)
+    st.header("Main — Simulação de Consenso")
+    # (ex.: tudo que vem antes da seção do simulador)
+    # ... (copie/cole a parte principal do seu app)
+
+with tab_sim:
+    st.header("🚨 Simulador de Fraude / Nó Malicioso")
+    st.markdown(
+        "Seção didática separada para demonstrar corrupção de nós e recuperação. "
+        "Use com moderação durante a apresentação."
+    )
+
+    # Lazy: apenas cria a interface de fraude aqui (não roda quando aba main é ativa)
+    colA, colB, colC = st.columns(3)
+    with colA:
+        node_to_corrupt = st.selectbox("Escolha nó para corromper:", list(nos.keys()), key="corrupt_node_select")
+        corrupt_type = st.radio("Tipo de corrupção:", ["Alterar último bloco (dados)", "Alterar hash final"])
+
+    with colB:
+        if st.button("🛠️ Corromper nó (simular ataque)", key="corrupt_btn"):
+            # sua lógica de corrupção (igual a que planejamos)
+            df = nos[node_to_corrupt].copy()
+            if len(df) == 0:
+                st.warning("No has no blocks to corrupt.")
+            else:
+                ultimo_idx = len(df) - 1
+                if corrupt_type == "Alterar último bloco (dados)":
+                    df.at[ultimo_idx, "etapa"] = str(df.at[ultimo_idx, "etapa"]) + "  (ALTERADO MALICIOSAMENTE)"
+                    conteudo = f"{df.at[ultimo_idx,'id_entrega']}-{df.at[ultimo_idx,'source_center']}-{df.at[ultimo_idx,'destination_name']}-{df.at[ultimo_idx,'etapa']}-{df.at[ultimo_idx,'timestamp']}-{df.at[ultimo_idx,'risco']}"
+                    df.at[ultimo_idx, "hash_atual"] = sb.gerar_hash(conteudo, df.at[ultimo_idx, "hash_anterior"])
+                else:
+                    df.at[ultimo_idx, "hash_atual"] = sb.gerar_hash("malicious", df.at[ultimo_idx, "hash_anterior"])
+                nos[node_to_corrupt] = df
+                st.error(f"⚠️ {node_to_corrupt} corrompido (simulado).")
+                st.dataframe(nos[node_to_corrupt].tail(1))
+
+    with colC:
+        if st.button("🔍 Detectar divergência", key="detect_btn"):
+            ok = validar_consenso(nos)
+            if ok:
+                st.success("🟢 Todos os nós estão sincronizados — sem divergência detectada.")
+            else:
+                st.warning("🟠 Divergência detectada!")
+                corrompidos = detectar_no_corrompido(nos)
+                st.write("Nós corrompidos detectados:", corrompidos)
+                ultimos = {nome: df.iloc[-1]["hash_atual"] for nome, df in nos.items()}
+                st.dataframe(pd.DataFrame(list(ultimos.items()), columns=["Nó", "hash_atual"]))
+
+    st.markdown("---")
+    if st.button("🔁 Recuperar nós corrompidos (copiar da maioria)", key="recover_btn"):
+        ultimos = {nome: df.iloc[-1]["hash_atual"] for nome, df in nos.items()}
+        freq = {}
+        for h in ultimos.values():
+            freq[h] = freq.get(h, 0) + 1
+        hash_ok = max(freq, key=freq.get)
+        try:
+            nos = recuperar_no(nos, hash_ok)
+            st.success("✅ Nós corrompidos recuperados com a blockchain da maioria.")
+        except Exception as e:
+            st.error(f"❌ Falha ao recuperar nós: {e}")
+
+    if st.button("📊 Mostrar resumo das blockchains (por nó)", key="summary_btn"):
+        for nome, df in nos.items():
+            st.markdown(f"**{nome}** — {len(df)} blocos — ultimo hash: `{df.iloc[-1]['hash_atual'][:16]}...`")
+            st.dataframe(df.tail(2))
+
+
