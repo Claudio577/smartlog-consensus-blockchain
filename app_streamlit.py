@@ -17,8 +17,11 @@ from smartlog_blockchain import (
     simular_chaves_privadas,
     propor_bloco,
     votar_proposta,
-    aplicar_consenso
+    aplicar_consenso,
+    detectar_no_corrompido,
+    recuperar_no
 )
+
 
 from firebase_utils import (
     salvar_blockchain_firestore,
