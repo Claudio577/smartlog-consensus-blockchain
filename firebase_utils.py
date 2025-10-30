@@ -1,50 +1,71 @@
 # ============================================================
-# 🔥 firebase_utils.py — Integração com Firestore
+# ☁️ Firebase Utils — Integração com Firestore (modo seguro)
+# ============================================================
+# Este módulo usa as credenciais armazenadas no Streamlit Secrets
+# para autenticar e manipular a blockchain no Firebase Firestore.
 # ============================================================
 
+import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, firestore
-from datetime import datetime
 import pandas as pd
-import streamlit as st
+
 
 # ============================================================
-# 🚀 Inicializa o Firebase (usando cache pra não duplicar)
+# 🔐 Inicialização segura (usando Streamlit Secrets)
 # ============================================================
+
 @st.cache_resource
 def init_firebase():
-    cred = credentials.Certificate("secrets/firebase_key.json")  # coloque o caminho correto
+    """
+    Inicializa o Firebase usando as credenciais armazenadas em st.secrets["FIREBASE"].
+    O cache evita múltiplas inicializações durante a execução do app.
+    """
     if not firebase_admin._apps:
+        firebase_config = st.secrets["FIREBASE"]
+        cred = credentials.Certificate(firebase_config)
         firebase_admin.initialize_app(cred)
     return firestore.client()
 
+
+# Inicializa o Firestore
 db = init_firebase()
 
-# ============================================================
-# 💾 Salvar Blockchain
-# ============================================================
-def salvar_blockchain_firestore(df_blockchain, nome_rede="rede_principal"):
-    """Salva a blockchain atual como documento no Firestore."""
-    dados = df_blockchain.to_dict(orient="records")
-    db.collection("blockchains").document(nome_rede).set({
-        "blocks": dados,
-        "atualizado_em": datetime.now().isoformat()
-    })
 
 # ============================================================
-# 📥 Carregar Blockchain
+# 🔹 Funções de sincronização da blockchain
 # ============================================================
-def carregar_blockchain_firestore(nome_rede="rede_principal"):
-    """Carrega blockchain salva da nuvem."""
-    doc = db.collection("blockchains").document(nome_rede).get()
-    if doc.exists:
-        data = doc.to_dict()
-        return pd.DataFrame(data["blocks"])
-    return None
 
-# ============================================================
-# 🧹 Resetar Blockchain
-# ============================================================
-def limpar_blockchain_firestore(nome_rede="rede_principal"):
-    """Remove a blockchain da nuvem."""
-    db.collection("blockchains").document(nome_rede).delete()
+def salvar_blockchain_firestore(df_blockchain):
+    """Salva o dataframe da blockchain no Firestore (coleção: 'blockchains')."""
+    try:
+        data = df_blockchain.to_dict(orient="records")
+        db.collection("blockchains").document("rede_principal").set({"dados": data})
+        st.success("✅ Blockchain salva no Firestore com sucesso!")
+    except Exception as e:
+        st.error(f"❌ Erro ao salvar blockchain no Firestore: {e}")
+
+
+def carregar_blockchain_firestore():
+    """Carrega a blockchain da nuvem (coleção: 'blockchains')."""
+    try:
+        doc = db.collection("blockchains").document("rede_principal").get()
+        if doc.exists:
+            data = doc.to_dict().get("dados", [])
+            if data:
+                return pd.DataFrame(data)
+        st.warning("⚠️ Nenhuma blockchain encontrada no Firestore.")
+        return None
+    except Exception as e:
+        st.error(f"❌ Erro ao carregar blockchain: {e}")
+        return None
+
+
+def limpar_blockchain_firestore():
+    """Remove a blockchain da nuvem (documento principal)."""
+    try:
+        db.collection("blockchains").document("rede_principal").delete()
+        st.warning("🧹 Blockchain removida do Firestore!")
+    except Exception as e:
+        st.error(f"❌ Erro ao limpar Firestore: {e}")
+
