@@ -148,28 +148,49 @@ with tab_main:
         st.subheader("📜 Histórico de Propostas")
         st.dataframe(pd.DataFrame(st.session_state.historico), use_container_width=True)
 
-    # Firestore manual
-    st.markdown("---")
-    st.subheader("☁️ Firestore — Sincronização Manual")
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        if st.button("📥 Carregar da Nuvem"):
-            df = carregar_blockchain_firestore()
-            if df is not None:
-                st.dataframe(df)
-                st.success("✅ Blockchain carregada!")
-            else:
-                st.warning("⚠️ Nenhum dado encontrado.")
-    with col2:
-        if st.button("💾 Salvar Manualmente"):
+  # ============================================================
+# ☁️ FIRESTORE — SINCRONIZAÇÃO MANUAL
+# ============================================================
+st.markdown("---")
+st.subheader("☁️ Firestore — Sincronização Manual")
+
+col1, col2, col3 = st.columns(3)
+
+# --- Botão: Carregar blockchain da nuvem ---
+with col1:
+    if st.button("📥 Carregar da Nuvem"):
+        df = carregar_blockchain_firestore()
+        if df is not None:
+            st.dataframe(df, use_container_width=True)
+            st.success("✅ Blockchain carregada com sucesso da nuvem!")
+        else:
+            st.warning("⚠️ Nenhum dado encontrado no Firestore.")
+
+# --- Botão: Salvar blockchain manualmente ---
+with col2:
+    if st.button("💾 Salvar Manualmente"):
+        try:
             salvar_blockchain_firestore(nos["Node_A"])
-    with col3:
+            st.success("✅ Blockchain salva manualmente no Firestore!")
+        except Exception as e:
+            st.error(f"❌ Erro ao salvar blockchain: {e}")
+
+# --- Botão: Resetar Firestore e limpar sessão ---
+with col3:
     if st.button("🧹 Resetar Firestore e Sessão"):
-        limpar_blockchain_firestore()
-        for key in list(st.session_state.keys()):
-            del st.session_state[key]
-        st.warning("⚠️ Blockchain removida do Firestore e sessão reiniciada. Clique em *Rerun* acima.")
-        st.stop()
+        try:
+            # Limpa dados do Firestore
+            limpar_blockchain_firestore()
+            
+            # Limpa sessão local
+            for key in list(st.session_state.keys()):
+                del st.session_state[key]
+            
+            st.warning("⚠️ Blockchain removida do Firestore e sessão reiniciada. Clique em **Rerun** acima.")
+            st.stop()
+        except Exception as e:
+            st.error(f"❌ Erro ao limpar Firestore: {e}")
+
 
 
   # Status de consenso
