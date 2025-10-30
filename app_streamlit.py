@@ -98,21 +98,8 @@ if st.button("🚀 Iniciar Simulação de Consenso"):
     proposta = propor_bloco(propositor, evento_texto, hash_anterior)
 
     st.markdown("### 🔍 Etapa 2: Votação dos Nós")
-    st.markdown("""
-🧮 **Etapa técnica: Recalcular o hash**
+    st.markdown("""... (texto explicativo) ...""")
 
-Cada nó recebe o novo bloco proposto e **refaz o cálculo do hash** localmente,
-usando o mesmo conteúdo e o hash anterior da cadeia.
-
-- Se o hash que ele calcular for **idêntico** ao hash enviado → o bloco é íntegro ✅  
-- Se for **diferente**, significa que **os dados foram alterados** e o nó **recusa o bloco** ❌  
-
-Essa verificação é o que garante a **imutabilidade**:  
-nenhum dado pode ser modificado sem que toda a rede perceba imediatamente.
-""")
-
-
-    # Executa a votação simulada
     proposta = votar_proposta(proposta, nos, chaves)
 
     st.markdown("#### 📊 Resultado das Assinaturas")
@@ -124,42 +111,42 @@ nenhum dado pode ser modificado sem que toda a rede perceba imediatamente.
         else:
             st.success(f"✅ {no} validou e assinou o bloco.")
             assinaturas.append({"Nó": no, "Assinatura": assinatura[:20] + "..."})
-
     st.dataframe(pd.DataFrame(assinaturas), use_container_width=True)
 
+    # ⚙️ ESTE BLOCO TINHA QUE ESTAR DENTRO DO if 👇
     st.markdown("### 🧮 Etapa 3: Cálculo do Consenso (Quorum)")
-st.write(f"É necessário **{quorum}** de {len(nos)} nós para aprovar o bloco.")
+    st.write(f"É necessário **{quorum}** de {len(nos)} nós para aprovar o bloco.")
 
-sucesso = aplicar_consenso(proposta, nos, quorum=quorum)
+    sucesso = aplicar_consenso(proposta, nos, quorum=quorum)
 
-# ============================================================
-# 🧩 RESULTADO DO CONSENSO E SALVAMENTO NO FIREBASE
-# ============================================================
-if sucesso:
-    st.success("✅ Consenso alcançado! O bloco foi adicionado em todos os nós.")
-    st.session_state.historico.append({
-        "evento": evento_texto,
-        "propositor": propositor,
-        "assinaturas": len([a for a in proposta['assinaturas'].values() if not a.startswith('Recusado')]),
-        "status": "Aceito"
-    })
+    # ============================================================
+    # 🧩 RESULTADO DO CONSENSO E SALVAMENTO NO FIREBASE
+    # ============================================================
+    if sucesso:
+        st.success("✅ Consenso alcançado! O bloco foi adicionado em todos os nós.")
+        st.session_state.historico.append({
+            "evento": evento_texto,
+            "propositor": propositor,
+            "assinaturas": len([a for a in proposta['assinaturas'].values() if not a.startswith('Recusado')]),
+            "status": "Aceito"
+        })
 
-    # ☁️ Salva automaticamente no Firebase
-    try:
-        blockchain_atual = nos["Node_A"]  # todos os nós estão iguais após consenso
-        salvar_blockchain_firestore(blockchain_atual)
-        st.info("☁️ Blockchain sincronizada com o Firestore (nuvem)!")
-    except Exception as e:
-        st.error(f"Erro ao salvar no Firestore: {e}")
+        # ☁️ Salva automaticamente no Firebase
+        try:
+            blockchain_atual = nos["Node_A"]
+            salvar_blockchain_firestore(blockchain_atual)
+            st.info("☁️ Blockchain sincronizada com o Firestore (nuvem)!")
+        except Exception as e:
+            st.error(f"Erro ao salvar no Firestore: {e}")
 
-else:
-    st.warning("⚠️ Quorum insuficiente. O bloco foi rejeitado.")
-    st.session_state.historico.append({
-        "evento": evento_texto,
-        "propositor": propositor,
-        "assinaturas": len([a for a in proposta['assinaturas'].values() if not a.startswith('Recusado')]),
-        "status": "Rejeitado"
-    })
+    else:
+        st.warning("⚠️ Quorum insuficiente. O bloco foi rejeitado.")
+        st.session_state.historico.append({
+            "evento": evento_texto,
+            "propositor": propositor,
+            "assinaturas": len([a for a in proposta['assinaturas'].values() if not a.startswith('Recusado')]),
+            "status": "Rejeitado"
+        })
 
 # ============================================================
 # 📜 HISTÓRICO DE CONSENSOS
