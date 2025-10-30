@@ -9,7 +9,6 @@ import pandas as pd
 import hashlib
 from datetime import datetime
 import copy
-from firebase_utils import salvar_blockchain_firestore, carregar_blockchain_firestore, limpar_blockchain_firestore
 
 # ===========================================================
 # 🔹 Funções de Hash e Blockchain
@@ -136,6 +135,8 @@ def votar_proposta(proposta, nos, chaves_privadas):
     return proposta
 
 
+# outras funções acima...
+
 def aplicar_consenso(proposta, nos, quorum=2):
     """Aplica o bloco se atingir quorum mínimo."""
     if len(proposta["assinaturas"]) >= quorum:
@@ -149,4 +150,5 @@ def aplicar_consenso(proposta, nos, quorum=2):
             nos[nome] = pd.concat([nos[nome], pd.DataFrame([novo])], ignore_index=True)
         return True
     return False
+
 
