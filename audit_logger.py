@@ -5,7 +5,6 @@
 from datetime import datetime
 from firebase_utils import init_firebase
 
-# Conecta ao Firestore (reaproveitando o mesmo projeto)
 db = init_firebase()
 
 def registrar_auditoria(usuario, acao, detalhes):
@@ -18,4 +17,6 @@ def registrar_auditoria(usuario, acao, detalhes):
         "detalhes": detalhes,
         "timestamp": datetime.now().isoformat()
     }
+
+    # 🔹 Aqui cria um novo documento (ID automático)
     db.collection("auditoria_logs").add(log)
