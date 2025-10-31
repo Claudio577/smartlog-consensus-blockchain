@@ -125,57 +125,69 @@ with tab_main:
                 assinaturas.append({"Nó": no, "Assinatura": assinatura[:20] + "..."})
         st.dataframe(pd.DataFrame(assinaturas), use_container_width=True)
 
-# ==============================
-# 🧩 ETAPA 3: CÁLCULO DO CONSENSO
-# ==============================
+# ============================================================
+# 🔗 ABA 1 — SIMULADOR DE CONSENSO (PRINCIPAL)
+# ============================================================
+with tab_main:
+    st.header("🔗 Simulação de Consenso Proof-of-Authority")
 
-st.markdown("### 🧮 Etapa 3: Cálculo do Consenso")
+    # Estado atual dos nós
+    st.subheader("📦 Estado Atual dos Nós")
+    col1, col2, col3 = st.columns(3)
+    for i, (nome, df) in enumerate(nos.items()):
+        with [col1, col2, col3][i]:
+            st.metric(label=f"{nome}", value=f"Hash final: {df.iloc[-1]['hash_atual'][:12]}")
 
-# Verifica se há proposta salva
-if "proposta" in st.session_state:
-    proposta = st.session_state.proposta
-    evento_texto = st.session_state.evento_texto
-    propositor = st.session_state.propositor
+    # Propor novo bloco
+    st.markdown("---")
+    st.subheader("🧠 Propor Novo Bloco")
+    evento_texto = st.text_input("📝 Descrição do novo evento:", "Entrega #104 — Saiu do depósito — SP → MG")
+    propositor = st.selectbox("👤 Selecione o nó propositor:", list(nos.keys()))
+    quorum = st.slider("📊 Defina o quorum mínimo:", 1, len(nos), 2)
 
-    st.write(f"É necessário **{quorum}** de {len(nos)} nós para aprovar o bloco.")
+    # ===============================================
+    # 🚀 Iniciar Simulação de Consenso (tudo integrado)
+    # ===============================================
+    if st.button("🚀 Iniciar Simulação de Consenso"):
+        st.markdown("### 🧱 Etapa 1: Criação da Proposta")
+        st.info(f"📦 {propositor} está propondo o bloco: **'{evento_texto}'**")
 
-    try:
-        sucesso = aplicar_consenso(proposta, nos, quorum=quorum)
-    except Exception as e:
-        st.error(f"Erro ao aplicar consenso: {e}")
-        sucesso = False
+        # 🔗 Usa o último hash da maioria
+        hashes_finais = [df.iloc[-1]["hash_atual"] for df in nos.values()]
+        hash_anterior = max(set(hashes_finais), key=hashes_finais.count)
 
-    if sucesso:
-        st.success("✅ Consenso alcançado! O bloco foi adicionado em todos os nós.")
-        registrar_auditoria("Sistema", "consenso_aprovado", f"Bloco '{evento_texto}' aceito com quorum {quorum}")
+        proposta = sb.propor_bloco(propositor, evento_texto, hash_anterior)
+        proposta = sb.votar_proposta(proposta, nos, chaves)
 
-        st.session_state.historico.append({
-            "evento": evento_texto,
-            "propositor": propositor,
-            "assinaturas": len(proposta["assinaturas"]),
-            "status": "Aceito"
-        })
+        # Mostra assinaturas
+        st.markdown("### 🔍 Etapa 2: Votação dos Nós")
+        for no, assinatura in proposta["assinaturas"].items():
+            if assinatura.startswith("Recusado"):
+                st.error(f"❌ {no} recusou o bloco.")
+            else:
+                st.success(f"✅ {no} validou e assinou o bloco.")
+
+        # ===============================================
+        # 🧮 Etapa 3 — Cálculo do Consenso (dentro do botão)
+        # ===============================================
+        st.markdown("### 🧮 Etapa 3: Cálculo do Consenso")
+        st.write(f"É necessário **{quorum}** de {len(nos)} nós para aprovar o bloco.")
 
         try:
-            blockchain_atual = nos["Node_A"]
-            salvar_blockchain_firestore(blockchain_atual)
-            st.info("☁️ Blockchain sincronizada com o Firestore!")
+            sucesso = sb.aplicar_consenso(proposta, nos, quorum=quorum)
         except Exception as e:
-            st.error(f"Erro ao salvar no Firestore: {e}")
+            st.error(f"Erro ao aplicar consenso: {e}")
+            sucesso = False
 
-    else:
-        st.warning("⚠️ Quorum insuficiente. O bloco foi rejeitado.")
-        registrar_auditoria("Sistema", "consenso_rejeitado", f"Bloco '{evento_texto}' rejeitado (quorum {quorum})")
+        if sucesso:
+            st.success("✅ Consenso alcançado! O bloco foi adicionado em todos os nós.")
+            registrar_auditoria("Sistema", "consenso_aprovado",
+                                 f"Bloco '{evento_texto}' aceito (quorum {quorum})")
+        else:
+            st.warning("⚠️ Quorum insuficiente. O bloco foi rejeitado.")
+            registrar_auditoria("Sistema", "consenso_rejeitado",
+                                 f"Bloco '{evento_texto}' rejeitado (quorum {quorum})")
 
-        st.session_state.historico.append({
-            "evento": evento_texto,
-            "propositor": propositor,
-            "assinaturas": len(proposta["assinaturas"]),
-            "status": "Rejeitado"
-        })
-
-else:
-    st.warning("⚠️ Nenhuma proposta disponível. Clique em **Iniciar Simulação de Consenso** primeiro.")
 
   # ============================================================
 # ☁️ FIRESTORE — SINCRONIZAÇÃO MANUAL
