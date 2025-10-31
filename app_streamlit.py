@@ -93,7 +93,8 @@ with tab_main:
     evento_texto = st.text_input(
     "📝 Descrição do novo evento:",
     "Entrega #104 — Saiu do depósito — SP → MG",
-    key="input_evento"
+    key="input_evento_main"
+)
 )
 
     propositor = st.selectbox(
@@ -102,7 +103,11 @@ with tab_main:
     key="select_propositor_main"
 )
 
-    quorum = st.slider("📊 Defina o quorum mínimo:", 1, len(nos), 2)
+    quorum = st.slider(
+    "📊 Defina o quorum mínimo:",
+    1, len(nos), 2,
+    key="slider_quorum_main"
+)
 
     if st.button("🚀 Iniciar Simulação de Consenso"):
         st.markdown("### 🧱 Etapa 1: Criação da Proposta")
