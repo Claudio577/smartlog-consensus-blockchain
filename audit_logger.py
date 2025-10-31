@@ -3,27 +3,22 @@
 # ============================================================
 
 from datetime import datetime
-from google.cloud import firestore
+from firebase_utils import init_firebase
+import streamlit as st
 
-# ============================================================
-# 🔐 Função de Auditoria
-# ============================================================
+# Inicializa Firestore compartilhado (seguro via st.secrets)
+db = init_firebase()
 
 def registrar_auditoria(usuario: str, acao: str, detalhes: str):
     """
-    Registra um evento de auditoria no Firestore, evitando duplicações consecutivas.
-    
-    Args:
-        usuario (str): nome do usuário ou sistema que gerou o log
-        acao (str): tipo de evento (ex: "consenso_aprovado", "no_corrompido", etc.)
-        detalhes (str): descrição detalhada do evento
+    Registra um evento de auditoria no Firestore.
+    Evita duplicações consecutivas do mesmo log.
     """
     try:
-        db = firestore.Client()
         logs_ref = db.collection("auditoria_logs")
 
         # Obtém o último registro (ordenado por timestamp)
-        ultimo_log = logs_ref.order_by("timestamp", direction=firestore.Query.DESCENDING).limit(1).stream()
+        ultimo_log = logs_ref.order_by("timestamp", direction="DESCENDING").limit(1).stream()
         ultimo_doc = next(ultimo_log, None)
 
         # Evita duplicação imediata
@@ -34,17 +29,20 @@ def registrar_auditoria(usuario: str, acao: str, detalhes: str):
                 and data.get("detalhes") == detalhes
                 and data.get("usuario") == usuario
             ):
-                print("[AUDITORIA] Log duplicado detectado — ignorado.")
-                return  # Não cria novo documento
+                st.toast("⚠️ Log duplicado detectado — ignorado.")
+                return
 
         # Se passou da checagem, registra novo log
-        logs_ref.add({
+        log = {
             "usuario": usuario,
             "acao": acao,
             "detalhes": detalhes,
-            "timestamp": datetime.now().isoformat()
-        })
-        print(f"[AUDITORIA] Log registrado: {acao} — {detalhes}")
+            "timestamp": datetime.utcnow().isoformat(),
+            "origem": "Streamlit Cloud"
+        }
+
+        logs_ref.add(log)
+        st.toast(f"✅ Auditoria registrada: {acao}")
 
     except Exception as e:
-        print(f"[ERRO AUDITORIA] Falha ao registrar log: {e}")
+        st.error(f"❌ Erro ao registrar auditoria: {e}")
