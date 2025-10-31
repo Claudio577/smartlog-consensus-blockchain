@@ -317,4 +317,16 @@ Permite observar como a integridade dos dados é quebrada e como o sistema detec
 if st.button("🧾 Testar auditoria Firestore"):
     registrar_auditoria("Claudio", "teste_streamlit", "Rodando direto pelo Streamlit Cloud")
     st.success("✅ Log enviado para o Firestore!")
+# ============================================================
+# 🧾 TESTE DE AUDITORIA MANUAL
+# ============================================================
+st.markdown("---")
+st.subheader("🧾 Teste direto de Auditoria (Firebase)")
 
+if st.button("📤 Testar envio de auditoria agora", key="botao_teste_auditoria"):
+    try:
+        registrar_auditoria("Claudio", "teste_envio_manual",
+                            "Auditoria manual disparada do app_streamlit")
+        st.success("✅ Log enviado com sucesso para o Firestore!")
+    except Exception as e:
+        st.error(f"❌ Erro ao registrar auditoria: {e}")
