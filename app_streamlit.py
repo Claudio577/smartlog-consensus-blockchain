@@ -96,7 +96,12 @@ with tab_main:
     key="input_evento"
 )
 
-    propositor = st.selectbox("👤 Selecione o nó propositor:", list(nos.keys()))
+    propositor = st.selectbox(
+    "👤 Selecione o nó propositor:",
+    list(nos.keys()),
+    key="select_propositor_main"
+)
+
     quorum = st.slider("📊 Defina o quorum mínimo:", 1, len(nos), 2)
 
     if st.button("🚀 Iniciar Simulação de Consenso"):
