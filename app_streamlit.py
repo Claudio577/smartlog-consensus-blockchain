@@ -10,6 +10,7 @@ import pandas as pd
 from datetime import datetime
 import hashlib
 import smartlog_blockchain as sb
+from audit_logger import registrar_auditoria
 
 from smartlog_blockchain import (
     criar_blockchain_inicial,
@@ -357,8 +358,6 @@ Permite observar como a integridade dos dados é quebrada e como o sistema detec
                 df[["bloco_id", "id_entrega", "source_center", "destination_name", "etapa", "hash_atual"]].tail(2),
                 use_container_width=True
             )
-from audit_logger import registrar_auditoria
-
 if st.button("🧾 Testar auditoria Firestore"):
     registrar_auditoria("Claudio", "teste_streamlit", "Rodando direto pelo Streamlit Cloud")
     st.success("✅ Log enviado para o Firestore!")
