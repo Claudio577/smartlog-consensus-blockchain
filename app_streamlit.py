@@ -95,8 +95,6 @@ with tab_main:
     "Entrega #104 — Saiu do depósito — SP → MG",
     key="input_evento_main"
 )
-)
-
     propositor = st.selectbox(
     "👤 Selecione o nó propositor:",
     list(nos.keys()),
