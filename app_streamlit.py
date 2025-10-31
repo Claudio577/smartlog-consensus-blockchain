@@ -127,9 +127,9 @@ with tab_main:
         sucesso = aplicar_consenso(proposta, nos, quorum=quorum)
 
        if sucesso:
-    st.success("✅ Consenso alcançado! O bloco foi adicionado em todos os nós.")
-    registrar_auditoria("Sistema", "consenso_aprovado", f"Bloco '{evento_texto}' aceito com quorum {quorum}")
-    st.session_state.historico.append({
+        st.success("✅ Consenso alcançado! O bloco foi adicionado em todos os nós.")
+        registrar_auditoria("Sistema", "consenso_aprovado", f"Bloco '{evento_texto}' aceito com quorum {quorum}")
+        st.session_state.historico.append({
         "evento": evento_texto,
         "propositor": propositor,
         "assinaturas": len(proposta["assinaturas"]),
