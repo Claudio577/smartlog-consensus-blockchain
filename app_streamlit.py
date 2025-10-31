@@ -90,7 +90,12 @@ with tab_main:
     # Propor novo bloco
     st.markdown("---")
     st.subheader("🧠 Propor Novo Bloco")
-    evento_texto = st.text_input("📝 Descrição do novo evento:", "Entrega #104 — Saiu do depósito — SP → MG")
+    evento_texto = st.text_input(
+    "📝 Descrição do novo evento:",
+    "Entrega #104 — Saiu do depósito — SP → MG",
+    key="input_evento"
+)
+
     propositor = st.selectbox("👤 Selecione o nó propositor:", list(nos.keys()))
     quorum = st.slider("📊 Defina o quorum mínimo:", 1, len(nos), 2)
 
