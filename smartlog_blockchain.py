@@ -137,21 +137,32 @@ def votar_proposta(proposta, nos, chaves_privadas):
 
 # outras funções acima...
 
+import hashlib
+
 def aplicar_consenso(proposta, nos, quorum=2):
+    """Aplica o consenso e adiciona o bloco se houver quorum suficiente."""
     votos_validos = sum(1 for a in proposta["assinaturas"].values() if not a.startswith("Recusado"))
+
     if votos_validos >= quorum:
         for nome, df in nos.items():
+            # 🔹 Gera o hash do novo bloco
+            conteudo = f"{proposta['evento']}{df.iloc[-1]['hash_atual']}"
+            hash_atual = hashlib.sha256(conteudo.encode()).hexdigest()
+
             novo_bloco = {
                 "bloco_id": len(df) + 1,
                 "evento": proposta["evento"],
                 "hash_anterior": df.iloc[-1]["hash_atual"],
-                "hash_atual": proposta["hash"]
+                "hash_atual": hash_atual
             }
+
             df = df._append(novo_bloco, ignore_index=True)
             nos[nome] = df
+
         return True
     else:
         return False
+
 
 __all__ = [
     "gerar_hash",
