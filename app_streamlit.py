@@ -96,6 +96,8 @@ with tab_main:
     if st.button("🚀 Iniciar Simulação de Consenso"):
         st.markdown("### 🧱 Etapa 1: Criação da Proposta")
         st.info(f"📦 {propositor} está propondo o bloco: **'{evento_texto}'**")
+        registrar_auditoria("Sistema", "propor_bloco", f"{propositor} propôs '{evento_texto}'")
+
 
         # 🔗 Usa o último hash comum da maioria dos nós (não só o Node_A)
         hashes_finais = [df.iloc[-1]["hash_atual"] for df in nos.values()]
@@ -124,28 +126,30 @@ with tab_main:
 
         sucesso = aplicar_consenso(proposta, nos, quorum=quorum)
 
-        if sucesso:
-            st.success("✅ Consenso alcançado! O bloco foi adicionado em todos os nós.")
-            st.session_state.historico.append({
-                "evento": evento_texto,
-                "propositor": propositor,
-                "assinaturas": len(proposta["assinaturas"]),
-                "status": "Aceito"
-            })
-            try:
-                blockchain_atual = nos["Node_A"]
-                salvar_blockchain_firestore(blockchain_atual)
-                st.info("☁️ Blockchain sincronizada com o Firestore!")
-            except Exception as e:
-                st.error(f"Erro ao salvar no Firestore: {e}")
-        else:
-            st.warning("⚠️ Quorum insuficiente. O bloco foi rejeitado.")
-            st.session_state.historico.append({
-                "evento": evento_texto,
-                "propositor": propositor,
-                "assinaturas": len(proposta["assinaturas"]),
-                "status": "Rejeitado"
-            })
+       if sucesso:
+    st.success("✅ Consenso alcançado! O bloco foi adicionado em todos os nós.")
+    registrar_auditoria("Sistema", "consenso_aprovado", f"Bloco '{evento_texto}' aceito com quorum {quorum}")
+    st.session_state.historico.append({
+        "evento": evento_texto,
+        "propositor": propositor,
+        "assinaturas": len(proposta["assinaturas"]),
+        "status": "Aceito"
+    })
+    try:
+        blockchain_atual = nos["Node_A"]
+        salvar_blockchain_firestore(blockchain_atual)
+        st.info("☁️ Blockchain sincronizada com o Firestore!")
+    except Exception as e:
+        st.error(f"Erro ao salvar no Firestore: {e}")
+else:
+    st.warning("⚠️ Quorum insuficiente. O bloco foi rejeitado.")
+    registrar_auditoria("Sistema", "consenso_rejeitado", f"Bloco '{evento_texto}' rejeitado (quorum {quorum})")
+    st.session_state.historico.append({
+        "evento": evento_texto,
+        "propositor": propositor,
+        "assinaturas": len(proposta["assinaturas"]),
+        "status": "Rejeitado"
+    })
 
     # Histórico de consenso
     if st.session_state.historico:
@@ -263,6 +267,8 @@ Permite observar como a integridade dos dados é quebrada e como o sistema detec
 
                 # --- Mostra comparação didática ---
                 st.error(f"⚠️ {node_to_corrupt} corrompido (simulado).")
+                registrar_auditoria("Sistema", "no_corrompido", f"{node_to_corrupt} corrompido ({corrupt_type})")
+
                 comparacao = pd.DataFrame([
                     {"Campo": "Etapa", "Antes": original["etapa"], "Depois": modificado["etapa"]},
                     {"Campo": "Hash Atual", "Antes": original["hash_atual"][:16], "Depois": modificado["hash_atual"][:16]},
@@ -300,6 +306,9 @@ Permite observar como a integridade dos dados é quebrada e como o sistema detec
             st.success("✅ Nós corrompidos restaurados com sucesso usando a blockchain da maioria.")
         except Exception as e:
             st.error(f"❌ Erro ao restaurar nós: {e}")
+            st.success("✅ Nós corrompidos restaurados com sucesso usando a blockchain da maioria.")
+        registrar_auditoria("Sistema", "no_recuperado", "Nós restaurados com base no hash majoritário.")
+
 
     if st.button("📊 Mostrar resumo das blockchains (por nó)", key="fraude_summary"):
         for nome, df in nos.items():
