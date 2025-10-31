@@ -90,78 +90,30 @@ with tab_main:
     # Propor novo bloco
     st.markdown("---")
     st.subheader("🧠 Propor Novo Bloco")
+
+    # 🧱 Cada widget com key única
     evento_texto = st.text_input(
-    "📝 Descrição do novo evento:",
-    "Entrega #104 — Saiu do depósito — SP → MG",
-    key="input_evento_main"
-)
+        "📝 Descrição do novo evento:",
+        "Entrega #104 — Saiu do depósito — SP → MG",
+        key="input_evento_main"
+    )
+
     propositor = st.selectbox(
-    "👤 Selecione o nó propositor:",
-    list(nos.keys()),
-    key="select_propositor_main"
-)
+        "👤 Selecione o nó propositor:",
+        list(nos.keys()),
+        key="select_propositor_main"
+    )
 
     quorum = st.slider(
-    "📊 Defina o quorum mínimo:",
-    1, len(nos), 2,
-    key="slider_quorum_main"
-)
-
-    if st.button("🚀 Iniciar Simulação de Consenso"):
-        st.markdown("### 🧱 Etapa 1: Criação da Proposta")
-        st.info(f"📦 {propositor} está propondo o bloco: **'{evento_texto}'**")
-        registrar_auditoria("Sistema", "propor_bloco", f"{propositor} propôs '{evento_texto}'")
-
-
-        # 🔗 Usa o último hash comum da maioria dos nós (não só o Node_A)
-        hashes_finais = [df.iloc[-1]["hash_atual"] for df in nos.values()]
-        # Escolhe o hash mais frequente (a maioria)
-        hash_anterior = max(set(hashes_finais), key=hashes_finais.count)
-
-        proposta = propor_bloco(propositor, evento_texto, hash_anterior)
-
-        st.markdown("### 🔍 Etapa 2: Votação dos Nós")
-        proposta = votar_proposta(proposta, nos, chaves)
-
-  # 👉 Salva no estado da sessão
-        st.session_state.proposta = proposta
-        st.session_state.evento_texto = evento_texto
-        st.session_state.propositor = propositor
-        st.markdown("#### 📊 Resultado das Assinaturas")
-        assinaturas = []
-        for no, assinatura in proposta["assinaturas"].items():
-            if assinatura.startswith("Recusado"):
-                st.error(f"❌ {no} recusou o bloco.")
-                assinaturas.append({"Nó": no, "Assinatura": "❌ Rejeitado"})
-            else:
-                st.success(f"✅ {no} validou e assinou o bloco.")
-                assinaturas.append({"Nó": no, "Assinatura": assinatura[:20] + "..."})
-        st.dataframe(pd.DataFrame(assinaturas), use_container_width=True)
-
-# ============================================================
-# 🔗 ABA 1 — SIMULADOR DE CONSENSO (PRINCIPAL)
-# ============================================================
-with tab_main:
-    st.header("🔗 Simulação de Consenso Proof-of-Authority")
-
-    # Estado atual dos nós
-    st.subheader("📦 Estado Atual dos Nós")
-    col1, col2, col3 = st.columns(3)
-    for i, (nome, df) in enumerate(nos.items()):
-        with [col1, col2, col3][i]:
-            st.metric(label=f"{nome}", value=f"Hash final: {df.iloc[-1]['hash_atual'][:12]}")
-
-    # Propor novo bloco
-    st.markdown("---")
-    st.subheader("🧠 Propor Novo Bloco")
-    evento_texto = st.text_input("📝 Descrição do novo evento:", "Entrega #104 — Saiu do depósito — SP → MG")
-    propositor = st.selectbox("👤 Selecione o nó propositor:", list(nos.keys()))
-    quorum = st.slider("📊 Defina o quorum mínimo:", 1, len(nos), 2)
+        "📊 Defina o quorum mínimo:",
+        1, len(nos), 2,
+        key="slider_quorum_main"
+    )
 
     # ===============================================
     # 🚀 Iniciar Simulação de Consenso (tudo integrado)
     # ===============================================
-    if st.button("🚀 Iniciar Simulação de Consenso"):
+    if st.button("🚀 Iniciar Simulação de Consenso", key="botao_consenso_main"):
         st.markdown("### 🧱 Etapa 1: Criação da Proposta")
         st.info(f"📦 {propositor} está propondo o bloco: **'{evento_texto}'**")
 
