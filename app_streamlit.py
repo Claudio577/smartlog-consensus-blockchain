@@ -121,7 +121,7 @@ with tab_main:
                 assinaturas.append({"Nó": no, "Assinatura": assinatura[:20] + "..."})
         st.dataframe(pd.DataFrame(assinaturas), use_container_width=True)
 
-                st.markdown("### 🧮 Etapa 3: Cálculo do Consenso")
+               st.markdown("### 🧮 Etapa 3: Cálculo do Consenso")
         st.write(f"É necessário **{quorum}** de {len(nos)} nós para aprovar o bloco.")
 
         sucesso = aplicar_consenso(proposta, nos, quorum=quorum)
@@ -156,6 +156,7 @@ with tab_main:
             st.markdown("---")
             st.subheader("📜 Histórico de Propostas")
             st.dataframe(pd.DataFrame(st.session_state.historico), use_container_width=True)
+
 
   # ============================================================
 # ☁️ FIRESTORE — SINCRONIZAÇÃO MANUAL
