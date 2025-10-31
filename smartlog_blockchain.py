@@ -138,18 +138,21 @@ def votar_proposta(proposta, nos, chaves_privadas):
 # outras funções acima...
 
 def aplicar_consenso(proposta, nos, quorum=2):
-    """Aplica o bloco se atingir quorum mínimo."""
-    if len(proposta["assinaturas"]) >= quorum:
-        for nome in nos.keys():
-            novo = {
-                "bloco_id": len(nos[nome]) + 1,
-                "dados": proposta["evento"],
-                "hash_anterior": proposta["hash_anterior"],
-                "hash_atual": proposta["hash_bloco"]
+    votos_validos = sum(1 for a in proposta["assinaturas"].values() if not a.startswith("Recusado"))
+    if votos_validos >= quorum:
+        for nome, df in nos.items():
+            novo_bloco = {
+                "bloco_id": len(df) + 1,
+                "evento": proposta["evento"],
+                "hash_anterior": df.iloc[-1]["hash_atual"],
+                "hash_atual": proposta["hash"]
             }
-            nos[nome] = pd.concat([nos[nome], pd.DataFrame([novo])], ignore_index=True)
+            df = df._append(novo_bloco, ignore_index=True)
+            nos[nome] = df
         return True
-    return False
+    else:
+        return False
+
 __all__ = [
     "gerar_hash",
     "criar_blockchain_inicial",
