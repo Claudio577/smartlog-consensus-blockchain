@@ -109,7 +109,10 @@ with tab_main:
         st.markdown("### 🔍 Etapa 2: Votação dos Nós")
         proposta = votar_proposta(proposta, nos, chaves)
 
-
+  # 👉 Salva no estado da sessão
+        st.session_state.proposta = proposta
+        st.session_state.evento_texto = evento_texto
+        st.session_state.propositor = propositor
         st.markdown("#### 📊 Resultado das Assinaturas")
         assinaturas = []
         for no, assinatura in proposta["assinaturas"].items():
@@ -126,6 +129,22 @@ with tab_main:
 # ==============================
 
 st.markdown("### 🧮 Etapa 3: Cálculo do Consenso")
+st.markdown("### 🧮 Etapa 3: Cálculo do Consenso")
+
+# Verifica se há proposta salva
+if "proposta" in st.session_state:
+    proposta = st.session_state.proposta
+    evento_texto = st.session_state.evento_texto
+    propositor = st.session_state.propositor
+    try:
+        sucesso = aplicar_consenso(proposta, nos, quorum=quorum)
+    except Exception as e:
+        st.error(f"Erro ao aplicar consenso: {e}")
+        sucesso = False
+else:
+    st.warning("⚠️ Nenhuma proposta disponível. Clique em **Iniciar Simulação de Consenso** primeiro.")
+    sucesso = False
+
 st.write(f"É necessário **{quorum}** de {len(nos)} nós para aprovar o bloco.")
 
 # Tenta aplicar o consenso
