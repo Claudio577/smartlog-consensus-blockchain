@@ -121,41 +121,41 @@ with tab_main:
                 assinaturas.append({"Nó": no, "Assinatura": assinatura[:20] + "..."})
         st.dataframe(pd.DataFrame(assinaturas), use_container_width=True)
 
-        st.markdown("### 🧮 Etapa 3: Cálculo do Consenso")
+                st.markdown("### 🧮 Etapa 3: Cálculo do Consenso")
         st.write(f"É necessário **{quorum}** de {len(nos)} nós para aprovar o bloco.")
 
         sucesso = aplicar_consenso(proposta, nos, quorum=quorum)
 
-       if sucesso:
-        st.success("✅ Consenso alcançado! O bloco foi adicionado em todos os nós.")
-        registrar_auditoria("Sistema", "consenso_aprovado", f"Bloco '{evento_texto}' aceito com quorum {quorum}")
-        st.session_state.historico.append({
-        "evento": evento_texto,
-        "propositor": propositor,
-        "assinaturas": len(proposta["assinaturas"]),
-        "status": "Aceito"
-    })
-    try:
-        blockchain_atual = nos["Node_A"]
-        salvar_blockchain_firestore(blockchain_atual)
-        st.info("☁️ Blockchain sincronizada com o Firestore!")
-    except Exception as e:
-        st.error(f"Erro ao salvar no Firestore: {e}")
-else:
-    st.warning("⚠️ Quorum insuficiente. O bloco foi rejeitado.")
-    registrar_auditoria("Sistema", "consenso_rejeitado", f"Bloco '{evento_texto}' rejeitado (quorum {quorum})")
-    st.session_state.historico.append({
-        "evento": evento_texto,
-        "propositor": propositor,
-        "assinaturas": len(proposta["assinaturas"]),
-        "status": "Rejeitado"
-    })
+        if sucesso:
+            st.success("✅ Consenso alcançado! O bloco foi adicionado em todos os nós.")
+            registrar_auditoria("Sistema", "consenso_aprovado", f"Bloco '{evento_texto}' aceito com quorum {quorum}")
+            st.session_state.historico.append({
+                "evento": evento_texto,
+                "propositor": propositor,
+                "assinaturas": len(proposta["assinaturas"]),
+                "status": "Aceito"
+            })
+            try:
+                blockchain_atual = nos["Node_A"]
+                salvar_blockchain_firestore(blockchain_atual)
+                st.info("☁️ Blockchain sincronizada com o Firestore!")
+            except Exception as e:
+                st.error(f"Erro ao salvar no Firestore: {e}")
+        else:
+            st.warning("⚠️ Quorum insuficiente. O bloco foi rejeitado.")
+            registrar_auditoria("Sistema", "consenso_rejeitado", f"Bloco '{evento_texto}' rejeitado (quorum {quorum})")
+            st.session_state.historico.append({
+                "evento": evento_texto,
+                "propositor": propositor,
+                "assinaturas": len(proposta["assinaturas"]),
+                "status": "Rejeitado"
+            })
 
-    # Histórico de consenso
-    if st.session_state.historico:
-        st.markdown("---")
-        st.subheader("📜 Histórico de Propostas")
-        st.dataframe(pd.DataFrame(st.session_state.historico), use_container_width=True)
+        # Histórico de consenso
+        if st.session_state.historico:
+            st.markdown("---")
+            st.subheader("📜 Histórico de Propostas")
+            st.dataframe(pd.DataFrame(st.session_state.historico), use_container_width=True)
 
   # ============================================================
 # ☁️ FIRESTORE — SINCRONIZAÇÃO MANUAL
