@@ -121,12 +121,7 @@ with tab_main:
                 assinaturas.append({"Nó": no, "Assinatura": assinatura[:20] + "..."})
         st.dataframe(pd.DataFrame(assinaturas), use_container_width=True)
 
-               st.markdown("### 🧮 Etapa 3: Cálculo do Consenso")
-        st.write(f"É necessário **{quorum}** de {len(nos)} nós para aprovar o bloco.")
-
-        sucesso = aplicar_consenso(proposta, nos, quorum=quorum)
-
-        # ==============================
+# ==============================
 # 🧩 ETAPA 3: CÁLCULO DO CONSENSO
 # ==============================
 
