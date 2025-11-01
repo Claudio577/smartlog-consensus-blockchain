@@ -91,11 +91,15 @@ def recuperar_no(nos, hash_ok):
         if df.iloc[-1]["hash_atual"] == hash_ok:
             fonte = df.copy()
             break
-    if not fonte:
+
+    # ⚙️ Correção — checa explicitamente se fonte é None
+    if fonte is None or fonte.empty:
         raise ValueError("Nenhum nó válido encontrado para restauração.")
+
     for nome, df in nos.items():
         if df.iloc[-1]["hash_atual"] != hash_ok:
             nos[nome] = fonte.copy()
+
     return nos
 
 
