@@ -11,6 +11,7 @@ from datetime import datetime
 import hashlib
 import smartlog_blockchain as sb
 from audit_logger import registrar_auditoria
+from web3_demo_simulado import mostrar_demo_web3
 
 from smartlog_blockchain import (
     criar_blockchain_inicial,
