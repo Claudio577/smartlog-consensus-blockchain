@@ -111,27 +111,28 @@ with tab_main:
         key="slider_quorum_main"
     )
 
-    # ===============================================
-    # 🚀 Iniciar Simulação de Consenso (tudo integrado)
-    # ===============================================
-    if st.button("🚀 Iniciar Simulação de Consenso", key="botao_consenso_main"):
-        st.markdown("### 🧱 Etapa 1: Criação da Proposta")
-        st.info(f"📦 {propositor} está propondo o bloco: **'{evento_texto}'**")
+   # ===============================================
+# 🚀 Iniciar Simulação de Consenso (tudo integrado)
+# ===============================================
+if st.button("🚀 Iniciar Simulação de Consenso", key="botao_consenso_main"):
+    st.markdown("### 🧱 Etapa 1: Criação da Proposta")
+    st.info(f"📦 {propositor} está propondo o bloco: **'{evento_texto}'**")
 
-        # 🔗 Usa o último hash da maioria
-        hashes_finais = [df.iloc[-1]["hash_atual"] for df in nos.values()]
-        hash_anterior = max(set(hashes_finais), key=hashes_finais.count)
+    # 🔗 Usa o último hash da maioria
+    hashes_finais = [df.iloc[-1]["hash_atual"] for df in nos.values()]
+    hash_anterior = max(set(hashes_finais), key=hashes_finais.count)
 
-        proposta = sb.propor_bloco(propositor, evento_texto, hash_anterior)
-        proposta = sb.votar_proposta(proposta, nos, chaves)
+    # Etapa 1: Proposta e votação
+    proposta = sb.propor_bloco(propositor, evento_texto, hash_anterior)
+    proposta = sb.votar_proposta(proposta, nos, chaves)
 
-        # Mostra assinaturas
-        st.markdown("### 🔍 Etapa 2: Votação dos Nós")
-        for no, assinatura in proposta["assinaturas"].items():
-            if assinatura.startswith("Recusado"):
-                st.error(f"❌ {no} recusou o bloco.")
-            else:
-                st.success(f"✅ {no} validou e assinou o bloco.")
+    # Etapa 2: Mostrar assinaturas
+    st.markdown("### 🔍 Etapa 2: Votação dos Nós")
+    for no, assinatura in proposta["assinaturas"].items():
+        if assinatura.startswith("Recusado"):
+            st.error(f"❌ {no} recusou o bloco.")
+        else:
+            st.success(f"✅ {no} validou e assinou o bloco.")
 
     # ===============================================
     # 🧮 Etapa 3 — Cálculo do Consenso
