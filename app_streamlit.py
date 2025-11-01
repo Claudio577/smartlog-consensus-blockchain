@@ -133,38 +133,37 @@ with tab_main:
             else:
                 st.success(f"✅ {no} validou e assinou o bloco.")
 
-     # ===============================================
-# 🧮 Etapa 3 — Cálculo do Consenso (dentro do botão)
-# ===============================================
-st.markdown("### 🧮 Etapa 3: Cálculo do Consenso")
-st.write(f"É necessário **{quorum}** de {len(nos)} nós para aprovar o bloco.")
+    # ===============================================
+    # 🧮 Etapa 3 — Cálculo do Consenso
+    # ===============================================
+    st.markdown("### 🧮 Etapa 3: Cálculo do Consenso")
+    st.write(f"É necessário **{quorum}** de {len(nos)} nós para aprovar o bloco.")
 
-try:
-    sucesso = sb.aplicar_consenso(proposta, nos, quorum=quorum)
-except Exception as e:
-    st.error(f"Erro ao aplicar consenso: {e}")
-    sucesso = False
+    try:
+        sucesso = sb.aplicar_consenso(proposta, nos, quorum=quorum)
+    except Exception as e:
+        st.error(f"Erro ao aplicar consenso: {e}")
+        sucesso = False
 
-if sucesso:
-    st.success("✅ Consenso alcançado! O bloco foi adicionado em todos os nós.")
-    registrar_auditoria(
-        "Sistema",
-        "consenso_aprovado",
-        f"Bloco '{evento_texto}' aceito (quorum {quorum})"
-    )
+    if sucesso:
+        st.success("✅ Consenso alcançado! O bloco foi adicionado em todos os nós.")
+        registrar_auditoria(
+            "Sistema",
+            "consenso_aprovado",
+            f"Bloco '{evento_texto}' aceito (quorum {quorum})"
+        )
 
-    # 🌐 Web3 Demo (simulada)
-    from web3_demo_simulado import mostrar_demo_web3
-    st.markdown("---")
-    mostrar_demo_web3(evento_texto, proposta["hash_bloco"])
+        # 🌐 Web3 Demo (simulada)
+        st.markdown("---")
+        mostrar_demo_web3(evento_texto, proposta["hash_bloco"])
 
-else:
-    st.warning("⚠️ Quorum insuficiente. O bloco foi rejeitado.")
-    registrar_auditoria(
-        "Sistema",
-        "consenso_rejeitado",
-        f"Bloco '{evento_texto}' rejeitado (quorum {quorum})"
-    )
+    else:
+        st.warning("⚠️ Quorum insuficiente. O bloco foi rejeitado.")
+        registrar_auditoria(
+            "Sistema",
+            "consenso_rejeitado",
+            f"Bloco '{evento_texto}' rejeitado (quorum {quorum})"
+        )
 
 
 
