@@ -148,6 +148,17 @@ with tab_main:
             st.success("✅ Consenso alcançado! O bloco foi adicionado em todos os nós.")
             registrar_auditoria("Sistema", "consenso_aprovado",
                                  f"Bloco '{evento_texto}' aceito (quorum {quorum})")
+            from web3_demo_simulado import mostrar_demo_web3
+
+            if sucesso:
+            st.success("✅ Consenso alcançado! O bloco foi adicionado em todos os nós.")
+            registrar_auditoria("Sistema", "consenso_aprovado",
+                         f"Bloco '{evento_texto}' aceito (quorum {quorum})")
+
+    # 🌐 Web3 Demo (simulada)
+    st.markdown("---")
+    mostrar_demo_web3(evento_texto, proposta['hash_bloco'])
+
         else:
             st.warning("⚠️ Quorum insuficiente. O bloco foi rejeitado.")
             registrar_auditoria("Sistema", "consenso_rejeitado",
