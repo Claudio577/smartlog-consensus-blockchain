@@ -1,49 +1,75 @@
-# ============================================================
+# ===========================================================
 # 🧾 audit_logger.py — Controle de Logs e Auditoria (Firestore)
-# ============================================================
+# ===========================================================
 
 from datetime import datetime
-from firebase_utils import init_firebase
+from firebase_utils import init_firebase # Depende da sua implementação no Streamlit
 import streamlit as st
+# Importar o tipo firestore para referência correta de constantes
+from google.cloud.firestore import firestore 
 
-# Inicializa Firestore compartilhado (seguro via st.secrets)
-db = init_firebase()
+# --- Variáveis de Ambiente (Simulação do Canvas/Streamlit Secrets) ---
+# Em um ambiente real do Canvas, 'APP_ID' deve ser o valor de '__app_id'.
+APP_ID = "smartlog-simulador" # Placeholder para __app_id.
+# --------------------------------------------------------------------
 
-def registrar_auditoria(usuario: str, acao: str, detalhes: str):
+# Inicializa Firestore compartilhado APENAS UMA VEZ para performance
+@st.cache_resource
+def get_db():
+    # A função init_firebase() deve injetar a configuração do Firebase
+    return init_firebase()
+
+db = get_db()
+
+
+def registrar_auditoria(user_id: str, acao: str, detalhes: str):
     """
     Registra um evento de auditoria no Firestore.
-    Evita duplicações consecutivas do mesmo log.
+    
+    A collection é estruturada como: /artifacts/{APP_ID}/users/{user_id}/auditoria_logs
+    para cumprir os requisitos de segurança do ambiente.
+    
+    Args:
+        user_id (str): O ID único do usuário autenticado.
+        acao (str): A ação que ocorreu (ex: consenso_aprovado).
+        detalhes (str): Descrição do evento (ex: Bloco 'X' aceito).
     """
     try:
-        logs_ref = db.collection("auditoria_logs")
+        # CONFORME REGRAS DO AMBIENTE: Usar path seguro e privado por usuário
+        logs_ref = db.collection(f"artifacts/{APP_ID}/users/{user_id}/auditoria_logs")
 
-        # Obtém o último registro (ordenado por timestamp)
-        ultimo_log = logs_ref.order_by("timestamp", direction="DESCENDING").limit(1).stream()
+        # 1. OBTENDO O ÚLTIMO LOG
+        # Nota: order_by no Firestore exige um índice na coluna 'timestamp'.
+        # DESCENDING é necessário para o PoA (Proof-of-Authority)
+        q = logs_ref.order_by("timestamp", direction=firestore.Query.DESCENDING).limit(1)
+        ultimo_log = q.stream()
         ultimo_doc = next(ultimo_log, None)
 
-        # Evita duplicação imediata
+        # 2. Evita duplicação imediata (Comum em reruns do Streamlit)
         if ultimo_doc:
             data = ultimo_doc.to_dict()
+            # Checa apenas acao e detalhes, pois o user_id é implícito no path
             if (
                 data.get("acao") == acao
                 and data.get("detalhes") == detalhes
-                and data.get("usuario") == usuario
             ):
-                st.toast("⚠️ Log duplicado detectado — ignorado.")
+                st.toast("⚠️ Log duplicado consecutivo detectado — ignorado.", icon="🚨")
                 return
 
-        # Se passou da checagem, registra novo log
+        # 3. Registra novo log
         log = {
-            "usuario": usuario,
+            "user_id": user_id, 
             "acao": acao,
             "detalhes": detalhes,
             "timestamp": datetime.utcnow().isoformat(),
-            "origem": "Streamlit Cloud"
+            "origem": "SmartLog Streamlit"
         }
 
         logs_ref.add(log)
-        st.toast(f"✅ Auditoria registrada: {acao}")
+        st.toast(f"✅ Auditoria registrada: {acao}", icon="🔒")
 
     except Exception as e:
-        st.error(f"❌ Erro ao registrar auditoria: {e}")
+        # Loga o erro no console para debug e mostra uma mensagem genérica
+        print(f"ERRO DE AUDITORIA FIREBASE: {e}")
+        st.error("❌ Erro ao registrar auditoria. Verifique a configuração do Firestore e os índices.")
 
