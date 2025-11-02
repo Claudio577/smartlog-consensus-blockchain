@@ -220,6 +220,27 @@ with tab_main:
     st.subheader("Utilitários de Sincronização e Auditoria (Firestore)")
     
     with st.container(border=True):
+        
+        # NOVOS CAMPOS PARA TESTE DE AUDITORIA MANUAL
+        st.markdown("##### Envio Manual de Log de Auditoria")
+        col_audit_actor, col_audit_message = st.columns([1, 3])
+        
+        with col_audit_actor:
+            audit_actor = st.selectbox(
+                "Ator/Fonte do Log:",
+                ["Usuário-Streamlit", "Sistema", "Nó de Validação"],
+                key="audit_actor"
+            )
+
+        with col_audit_message:
+            audit_message = st.text_input(
+                "Mensagem de Auditoria (Ação):",
+                "Evento de teste manual disparado.",
+                key="audit_message"
+            )
+        
+        st.markdown("---") # Separador para os botões
+
         col1, col2, col3, col4 = st.columns([1.5, 1.5, 2, 2])
 
         # --- Botão: Carregar blockchain da nuvem ---
@@ -263,15 +284,15 @@ with tab_main:
                     # Removido emoji
                     st.error(f"Erro ao limpar Firestore: {e}")
         
-        # --- Botão: Teste de Auditoria Manual ---
+        # --- Botão: Teste de Auditoria Manual (AGORA DINÂMICO) ---
         with col4:
             # Removido emoji do botão
-            if st.button("Testar Log de Auditoria", key="botao_teste_auditoria", use_container_width=True):
+            if st.button("Enviar Log de Auditoria", key="botao_teste_auditoria", use_container_width=True):
                 try:
-                    registrar_auditoria("Usuário-Streamlit", "teste_envio_manual",
-                                        "Auditoria manual disparada do app_streamlit")
+                    # Usa os valores dinâmicos de Ator e Mensagem
+                    registrar_auditoria(audit_actor, "teste_envio_manual", audit_message)
                     # Removido emoji
-                    st.success("Log de auditoria enviado com sucesso para o Firestore!")
+                    st.success(f"Log de auditoria enviado: **{audit_actor}** registrou: '{audit_message}'")
                 except Exception as e:
                     # Removido emoji
                     st.error(f"Erro ao registrar auditoria: {e}")
