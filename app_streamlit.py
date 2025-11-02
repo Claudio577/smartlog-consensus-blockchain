@@ -49,24 +49,30 @@ Se o número de assinaturas atinge o *quorum mínimo*, o bloco é aceito por tod
 # ESTADO INICIAL — Blockchain e Nós
 # ============================================================
 if "nos" not in st.session_state:
-    dados = {
-        "id_entrega": [1, 2, 3],
-        "source_center": ["Depósito_SP", "Depósito_SP", "Depósito_RJ"],
-        "destination_name": ["Centro_MG", "Centro_PR", "Centro_BA"],
-        "etapa": ["Saiu do depósito", "Em rota", "Chegou ao destino"],
-        "timestamp": [datetime.now()] * 3,
-        "risco": ["Baixo", "Médio", "Baixo"]
-    }
-    eventos_df = pd.DataFrame(dados)
+    try:
+        dados = {
+            "id_entrega": [1, 2, 3],
+            "source_center": ["Depósito_SP", "Depósito_SP", "Depósito_RJ"],
+            "destination_name": ["Centro_MG", "Centro_PR", "Centro_BA"],
+            "etapa": ["Saiu do depósito", "Em rota", "Chegou ao destino"],
+            "timestamp": [datetime.now()] * 3,
+            "risco": ["Baixo", "Médio", "Baixo"]
+        }
+        eventos_df = pd.DataFrame(dados)
 
-    blockchain_df = criar_blockchain_inicial(eventos_df)
-    nos = criar_nos(blockchain_df)
-    chaves = simular_chaves_privadas(nos)
+        blockchain_df = criar_blockchain_inicial(eventos_df)
+        nos = criar_nos(blockchain_df)
+        chaves = simular_chaves_privadas(nos)
 
-    st.session_state.blockchain_df = blockchain_df
-    st.session_state.nos = nos
-    st.session_state.chaves = chaves
-    st.session_state.historico = []
+        st.session_state.blockchain_df = blockchain_df
+        st.session_state.nos = nos
+        st.session_state.chaves = chaves
+        st.session_state.historico = []
+    except Exception as e:
+        # Adicionando tratamento de erro para a inicialização
+        st.error(f"Erro Crítico na Inicialização do Estado: {e}")
+        st.info("Por favor, verifique se todos os módulos (smartlog_blockchain, audit_logger, web3_demo_simulado, firebase_utils) estão definidos corretamente.")
+        st.stop() # Paramos aqui para evitar erros mais adiante
 
 nos = st.session_state.nos
 chaves = st.session_state.chaves
@@ -226,9 +232,10 @@ with tab_main:
         col_audit_actor, col_audit_message = st.columns([1, 3])
         
         with col_audit_actor:
+            # AQUI: Alteração das opções de Ator/Fonte do Log para maior clareza
             audit_actor = st.selectbox(
                 "Ator/Fonte do Log:",
-                ["Usuário-Streamlit", "Sistema", "Nó de Validação"],
+                ["Interface de Teste (Usuário)", "Consenso Central (Sistema)", "Nó Propositor (Automático)"],
                 key="audit_actor"
             )
 
@@ -245,57 +252,49 @@ with tab_main:
 
         # --- Botão: Carregar blockchain da nuvem ---
         with col1:
-            # Removido emoji do botão
-            if st.button("Carregar da Nuvem", use_container_width=True):
+            # ADICIONADO: Ícone e tipo 'secondary' para leitura
+            if st.button("Carregar da Nuvem", use_container_width=True, type="secondary", help="Busca o último estado salvo da Blockchain no Firestore."):
                 df = carregar_blockchain_firestore()
                 if df is not None:
                     st.session_state.blockchain_df = df # Atualiza o estado da sessão (melhor prática)
                     nos["Node_A"] = df # Apenas atualiza um nó para demonstração
-                    # Removido emoji
-                    st.success("Blockchain carregada e Node_A atualizado da nuvem!")
+                    st.success("✅ Blockchain carregada e Node_A atualizado da nuvem!")
                 else:
-                    # Removido emoji
-                    st.warning("Nenhum dado encontrado no Firestore.")
+                    st.warning("⚠️ Nenhum dado encontrado no Firestore.")
 
         # --- Botão: Salvar blockchain manualmente ---
         with col2:
-            # Removido emoji do botão
-            if st.button("Salvar Manualmente", use_container_width=True):
+            # ADICIONADO: Ícone e tipo 'primary' para ação de gravação
+            if st.button("Salvar Manualmente", use_container_width=True, type="primary", help="Salva o estado atual da Blockchain (Node A) no Firestore."):
                 try:
                     salvar_blockchain_firestore(nos["Node_A"])
-                    # Removido emoji
-                    st.success("Blockchain salva manualmente no Firestore!")
+                    st.success("✅ Blockchain salva manualmente no Firestore!")
                 except Exception as e:
-                    # Removido emoji
-                    st.error(f"Erro ao salvar blockchain: {e}")
+                    st.error(f"❌ Erro ao salvar blockchain: {e}")
 
         # --- Botão: Resetar Firestore e limpar sessão ---
         with col3:
-            # Removido emoji do botão
-            if st.button("Resetar Firestore e Sessão", use_container_width=True):
+            # ADICIONADO: Ícone e cor vermelha para ação crítica/destrutiva
+            if st.button("Resetar Tudo", use_container_width=True, type="danger", help="APAGA a Blockchain do Firestore e reinicia a sessão do Streamlit. Ação irreversível!"):
                 try:
                     limpar_blockchain_firestore()
                     for key in list(st.session_state.keys()):
                         del st.session_state[key]
-                    # Removido emoji
-                    st.warning("Blockchain removida do Firestore e sessão reiniciada. Clique em 'Rerun'.")
+                    st.warning("⚠️ Blockchain removida do Firestore e sessão reiniciada. Clique em 'Rerun'.")
                     st.stop()
                 except Exception as e:
-                    # Removido emoji
-                    st.error(f"Erro ao limpar Firestore: {e}")
+                    st.error(f"❌ Erro ao limpar Firestore: {e}")
         
         # --- Botão: Teste de Auditoria Manual (AGORA DINÂMICO) ---
         with col4:
-            # Removido emoji do botão
-            if st.button("Enviar Log de Auditoria", key="botao_teste_auditoria", use_container_width=True):
+            # ADICIONADO: Ícone e tipo 'primary' para gravação de log
+            if st.button("Enviar Log Auditoria", key="botao_teste_auditoria", use_container_width=True, type="primary", help="Registra um evento de auditoria customizado no Firestore."):
                 try:
                     # Usa os valores dinâmicos de Ator e Mensagem
                     registrar_auditoria(audit_actor, "teste_envio_manual", audit_message)
-                    # Removido emoji
-                    st.success(f"Log de auditoria enviado: **{audit_actor}** registrou: '{audit_message}'")
+                    st.success(f"✅ Log de auditoria enviado: **{audit_actor}** registrou: '{audit_message}'")
                 except Exception as e:
-                    # Removido emoji
-                    st.error(f"Erro ao registrar auditoria: {e}")
+                    st.error(f"❌ Erro ao registrar auditoria: {e}")
 
 # ============================================================
 # ABA 2 — SIMULADOR DE FRAUDE / NÓ MALICIOSO
@@ -323,7 +322,7 @@ with tab_fraude:
         with colB:
             st.markdown(" ") # Espaço para alinhamento
             # Removido emoji do botão
-            if st.button("Corromper nó (simular ataque)", key="fraude_attack", use_container_width=True):
+            if st.button("Corromper nó (simular ataque)", key="fraude_attack", use_container_width=True, type="danger"):
                 df = nos[node_to_corrupt].copy()
                 if len(df) > 0:
                     idx = len(df) - 1
@@ -343,8 +342,7 @@ with tab_fraude:
                     modificado = df.iloc[idx].to_dict()
 
                     # --- Mostra comparação didática ---
-                    # Removido emoji
-                    st.error(f"{node_to_corrupt} corrompido (simulado).")
+                    st.error(f"❌ {node_to_corrupt} corrompido (simulado).")
                     registrar_auditoria("Sistema", "no_corrompido", f"{node_to_corrupt} corrompido ({corrupt_type})")
 
                     comparacao = pd.DataFrame([
@@ -355,8 +353,7 @@ with tab_fraude:
                     st.dataframe(comparacao, use_container_width=True)
 
                 else:
-                    # Removido emoji
-                    st.warning("Este nó não contém blocos para corromper.")
+                    st.warning("⚠️ Este nó não contém blocos para corromper.")
 
     st.divider()
 
@@ -369,17 +366,14 @@ with tab_fraude:
         
         # Detectar divergências
         with colC:
-            # Removido emoji do botão
-            if st.button("Detectar divergência", key="fraude_detect", use_container_width=True):
+            # ADICIONADO: Tipo 'secondary' para leitura/checagem
+            if st.button("Detectar divergência", key="fraude_detect", use_container_width=True, type="secondary"):
                 if validar_consenso(nos):
-                    # Removido emoji
-                    st.success("Todos os nós estão íntegros e sincronizados.")
+                    st.success("✅ Todos os nós estão íntegros e sincronizados.")
                 else:
-                    # Removido emoji
-                    st.error("Divergência detectada entre os nós!")
+                    st.error("❌ Divergência detectada entre os nós!")
                     corrompidos = detectar_no_corrompido(nos)
-                    # Removido emoji
-                    st.warning(f"Nós corrompidos identificados: **{', '.join(corrompidos)}**")
+                    st.warning(f"⚠️ Nós corrompidos identificados: **{', '.join(corrompidos)}**")
                     
                     ultimos = {n: df.iloc[-1]["hash_atual"][:16] for n, df in nos.items()}
                     st.markdown("##### Hashes Finais (para comparação):")
@@ -387,8 +381,8 @@ with tab_fraude:
 
         # Recuperação
         with colD:
-            # Removido emoji do botão
-            if st.button("Recuperar nós corrompidos (copiar da maioria)", key="fraude_recover", use_container_width=True):
+            # ADICIONADO: Tipo 'primary' para ação de recuperação/correção
+            if st.button("Recuperar nós corrompidos (copiar da maioria)", key="fraude_recover", use_container_width=True, type="primary"):
                 try:
                     ultimos = {n: df.iloc[-1]["hash_atual"] for n, df in nos.items()}
                     # Encontra o hash majoritário
@@ -397,19 +391,17 @@ with tab_fraude:
                     
                     # Recupera o estado de todos os nós baseados no nó com o hash_ok
                     nos = recuperar_no(nos, hash_ok)
-                    # Removido emoji
-                    st.success("Nós corrompidos restaurados com sucesso usando a blockchain da maioria.")
+                    st.success("✅ Nós corrompidos restaurados com sucesso usando a blockchain da maioria.")
                     registrar_auditoria("Sistema", "no_recuperado", "Nós restaurados com base no hash majoritário.")
                 except Exception as e:
-                    # Removido emoji
-                    st.error(f"Erro ao restaurar nós: {e}")
+                    st.error(f"❌ Erro ao restaurar nós: {e}")
                     
         
         st.divider()
 
         # Resumo
-        # Removido emoji do botão
-        if st.button("Mostrar resumo das blockchains (por nó)", key="fraude_summary"):
+        # ADICIONADO: Tipo 'secondary' para visualização
+        if st.button("Mostrar resumo das blockchains (por nó)", key="fraude_summary", type="secondary"):
             for nome, df in nos.items():
                 st.markdown(f"**{nome}** — {len(df)} blocos — hash final `{df.iloc[-1]['hash_atual'][:16]}...`")
                 st.dataframe(
