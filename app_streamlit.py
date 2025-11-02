@@ -40,6 +40,13 @@ from firebase_utils import (
 st.set_page_config(page_title="SmartLog Blockchain", layout="wide")
 
 st.title("SmartLog Blockchain — Simulador de Consenso (PoA)")
+
+# A nova frase entra aqui, antes do markdown existente
+st.markdown("""
+*Imagine uma Blockchain não como uma rede pública (como o Bitcoin), mas sim como um cartório digital ultra-seguro gerenciado por Membros da Rede Autorizados.*
+""")
+
+# Explicação técnica
 st.markdown("""
 O **SmartLog Blockchain** demonstra o funcionamento de um consenso *Proof-of-Authority* em redes logísticas. Cada nó valida e assina digitalmente os blocos propostos. 
 Se o número de assinaturas atinge o *quorum mínimo*, o bloco é aceito por toda a rede. 
