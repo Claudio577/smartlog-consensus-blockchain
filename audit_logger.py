@@ -6,7 +6,8 @@ from datetime import datetime
 from firebase_utils import init_firebase # Depende da sua implementação no Streamlit
 import streamlit as st
 # Importar o tipo firestore para referência correta de constantes
-from google.cloud.firestore import firestore 
+from firebase_admin import firestore
+
 
 # --- Variáveis de Ambiente (Simulação do Canvas/Streamlit Secrets) ---
 # Em um ambiente real do Canvas, 'APP_ID' deve ser o valor de '__app_id'.
