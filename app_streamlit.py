@@ -184,7 +184,7 @@ with tab_main:
 
             st.session_state["web3_evento_texto"] = evento_texto
             st.session_state["web3_hash"] = proposta["hash_bloco"]
-            st.session_state["mostrar_web3"] = True
+            st.session_state["mostrar_web3"] = False
 
         else:
             st.warning("Quorum insuficiente. O bloco foi rejeitado e não foi adicionado.")
