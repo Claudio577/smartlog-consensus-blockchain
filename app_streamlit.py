@@ -221,7 +221,7 @@ with tab_main:
     # --- Visualização do Ledger (Melhoria de UI) ---
     # Removido emoji do expander
     with st.expander("Visualizar Ledger (Nó A)", expanded=False):
-    st.dataframe(nos["Nó_A"], use_container_width=True)
+        st.dataframe(nos["Nó_A"], use_container_width=True)
 
 
     # ============================================================
