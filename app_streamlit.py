@@ -172,19 +172,20 @@ with tab_main:
                 st.success(f"✅ Consenso alcançado! Novo bloco adicionado. Hash: `{novo_hash_display}...`")
 
                 registrar_auditoria("Sistema", "consenso_aprovado", f"Bloco '{evento_texto}' aceito (quorum {quorum})")
-                    # --------------------------------------------------------
-                    # 🔁 BOTÃO PARA ADICIONAR NOVO BLOCO
-                    # --------------------------------------------------------
-                    st.divider()
-                    st.markdown("### 🔁 Adicionar Novo Bloco")
+                                  # --------------------------------------------------------
+                # 🔁 BOTÃO PARA ADICIONAR NOVO BLOCO (com indentação correta)
+                # --------------------------------------------------------
+                st.divider()
+                st.markdown("### 🔁 Adicionar Novo Bloco")
 
-                     if st.button("➕ Criar Nova Proposta de Bloco", use_container_width=True):
-                        # Reseta apenas as variáveis da última proposta (não perde a blockchain)
-                        st.session_state["web3_evento_texto"] = None
-                        st.session_state["web3_hash"] = None
-                        st.session_state["mostrar_web3"] = False
-                        st.session_state["consenso_sucesso"] = False
-                        st.experimental_rerun()
+                if st.button("➕ Criar Nova Proposta de Bloco", use_container_width=True):
+                    # Reseta apenas as variáveis da última proposta (mantém a blockchain)
+                    st.session_state["web3_evento_texto"] = None
+                    st.session_state["web3_hash"] = None
+                    st.session_state["mostrar_web3"] = False
+                    st.session_state["consenso_sucesso"] = False
+                    st.experimental_rerun()
+
 
 
                 # --------------------------------------------------------
