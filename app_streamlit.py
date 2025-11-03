@@ -194,13 +194,18 @@ with tab_main:
             sucesso = False
 
         if sucesso:
-            # Removido emoji da mensagem de sucesso
-            st.success("Consenso alcançado! O bloco foi adicionado em todos os nós.")
-            registrar_auditoria(
-                "Sistema",
-                "consenso_aprovado",
-                f"Bloco '{evento_texto}' aceito (quorum {quorum})"
-            )
+    st.success("Consenso alcançado! O bloco foi adicionado em todos os nós.")
+    registrar_auditoria(
+        "Sistema",
+        "consenso_aprovado",
+        f"Bloco '{evento_texto}' aceito (quorum {quorum})"
+    )
+
+    # ✅ Marca no estado da sessão que o painel Web3 deve aparecer
+    st.session_state["web3_evento_texto"] = evento_texto
+    st.session_state["web3_hash"] = proposta["hash_bloco"]
+    st.session_state["mostrar_web3"] = True
+
 
             # RE-ADICIONADO: Visualização Web3 (Simulada)
             with st.expander("Visualização Web3 (Simulada)", expanded=False):
