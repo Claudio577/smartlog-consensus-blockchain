@@ -107,16 +107,6 @@ with tab_main:
     else:
         st.warning("⚠️ Divergência detectada entre os nós.")
 
-    st.divider()
-with tab_main:
-    st.header("Fluxo de Consenso Proof-of-Authority")
-
-    consenso_ok = validar_consenso(nos)
-    if consenso_ok:
-        st.success("✅ Sistema sincronizado e íntegro.")
-    else:
-        st.warning("⚠️ Divergência detectada entre os nós.")
-
     # --------------------------------------------------------
     # STATUS DA REDE E HASHES INICIAIS
     # --------------------------------------------------------
