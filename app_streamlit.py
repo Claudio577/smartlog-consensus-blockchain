@@ -220,8 +220,9 @@ with tab_main:
 
     # --- Visualização do Ledger (Melhoria de UI) ---
     # Removido emoji do expander
-    with st.expander("Visualizar Ledger (Node A)", expanded=False):
-        st.dataframe(nos["Node_A"], use_container_width=True)
+    with st.expander("Visualizar Ledger (Nó A)", expanded=False):
+    st.dataframe(nos["Nó_A"], use_container_width=True)
+
 
     # ============================================================
     # FIRESTORE E AUDITORIA — UTilitários
