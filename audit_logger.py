@@ -6,8 +6,7 @@ from datetime import datetime
 from firebase_utils import init_firebase # Depende da sua implementação no Streamlit
 import streamlit as st
 # Importar o tipo firestore para referência correta de constantes
-from firebase_admin import firestore
-
+from google.cloud.firestore import firestore 
 
 # --- Variáveis de Ambiente (Simulação do Canvas/Streamlit Secrets) ---
 # Em um ambiente real do Canvas, 'APP_ID' deve ser o valor de '__app_id'.
@@ -73,4 +72,3 @@ def registrar_auditoria(user_id: str, acao: str, detalhes: str):
         # Loga o erro no console para debug e mostra uma mensagem genérica
         print(f"ERRO DE AUDITORIA FIREBASE: {e}")
         st.error("❌ Erro ao registrar auditoria. Verifique a configuração do Firestore e os índices.")
-
