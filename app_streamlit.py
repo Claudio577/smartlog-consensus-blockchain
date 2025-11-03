@@ -202,7 +202,7 @@ with tab_main:
             st.session_state["mostrar_web3"] = False
             st.session_state["consenso_sucesso"] = False
             st.session_state["df_auditoria_hash"] = None
-            st.experimental_rerun()
+            st.rerun()
 
     # --------------------------------------------------------
     # VISUALIZAÇÃO WEB3 (SOMENTE POR BOTÃO)
