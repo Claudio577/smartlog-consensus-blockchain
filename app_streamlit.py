@@ -125,8 +125,8 @@ with tab_main:
     with st.expander("Status da Rede e Hashes Finais (Antes da Proposta)", expanded=False):
         col_metrics = st.columns(len(nos))
         for i, (nome, df) in enumerate(nos.items()):
-            # Aumentando o display do hash para melhor comparação
-            hash_display = df.iloc[-1]['hash_atual'][:12] if len(df) > 0 else "VAZIO" 
+            # Aumentando o display do hash para 16 caracteres para melhor comparação
+            hash_display = df.iloc[-1]['hash_atual'][:16] if len(df) > 0 else "VAZIO" 
             
             with col_metrics[i]:
                 st.metric(
@@ -188,13 +188,13 @@ with tab_main:
                 st.error(f"Erro na fase de Proposta/Votação: {e}")
                 st.stop()
             
-            # --- Exibição do Hash Proposto e Anterior ---
+            # --- Exibição do Hash Proposto e Anterior (Aumentado para 16 caracteres) ---
             hash_proposto = proposta["hash_bloco"]
             st.info(f"""
-                Hash Anterior (Base do Consenso): `{hash_anterior[:12]}...`  
-                Hash do Bloco Proposto: `{hash_proposto[:12]}...`
+                Hash Anterior (Base do Consenso): `{hash_anterior[:16]}...`  
+                Hash do Bloco Proposto: `{hash_proposto[:16]}...`
             """)
-            # -------------------------------------------
+            # --------------------------------------------------------------------------
 
             st.markdown("##### 1.1. Verificação de Integridade (Pré-Votação)")
             col_integrity = st.columns(len(nos))
@@ -207,10 +207,10 @@ with tab_main:
                 with col_integrity[i]:
                     if compara_ok:
                         st.success(f"Nó {nome}: ÍNTEGRO")
-                        st.caption(f"Último Hash do Nó corresponde ao Hash Anterior: `{hash_no[:12]}...`")
+                        st.caption(f"Último Hash do Nó corresponde ao Hash Anterior: `{hash_no[:16]}...`")
                     else:
                         st.error(f"Nó {nome}: CORROMPIDO / FORA DE SINCRONIA")
-                        st.caption(f"Esperado `{hash_anterior[:12]}...` | Achado `{hash_no[:12]}...`")
+                        st.caption(f"Esperado `{hash_anterior[:16]}...` | Achado `{hash_no[:16]}...`")
 
             st.markdown("---")
             
@@ -238,7 +238,8 @@ with tab_main:
             if sucesso:
                 st.session_state["consenso_sucesso"] = True # Define sucesso
                 
-                novo_hash_display = proposta["hash_bloco"][:12]
+                # Novo Hash Display também aumentado para 16 caracteres
+                novo_hash_display = proposta["hash_bloco"][:16]
                 st.success(f"Consenso alcançado. O bloco foi adicionado em todos os nós. (Novo Hash: `{novo_hash_display}...`)")
                 
                 registrar_auditoria(
@@ -265,7 +266,7 @@ with tab_main:
             st.rerun() # Força o rerun para exibir o status pós-consenso
 
     # --------------------------------------------------------
-    # 2.1. STATUS PÓS-CONSENSO (NOVA SEÇÃO)
+    # 2.1. STATUS PÓS-CONSENSO (Nós Sincronizados)
     # --------------------------------------------------------
     if st.session_state.get("consenso_sucesso", False):
         st.markdown("##### 2.1. Status Pós-Consenso (Nós Sincronizados)")
@@ -273,8 +274,8 @@ with tab_main:
         
         col_post_status = st.columns(len(nos))
         for i, (nome, df) in enumerate(nos.items()):
-            # Pega o NOVO hash atual após a aplicação do consenso
-            hash_display = df.iloc[-1]['hash_atual'][:12] if len(df) > 0 else "VAZIO" 
+            # Pega o NOVO hash atual após a aplicação do consenso (Aumentado para 16 caracteres)
+            hash_display = df.iloc[-1]['hash_atual'][:16] if len(df) > 0 else "VAZIO" 
             
             with col_post_status[i]:
                 st.metric(
