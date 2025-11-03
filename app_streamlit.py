@@ -203,18 +203,44 @@ with tab_main:
                 st.error(f"Erro ao aplicar consenso: {e}")
                 sucesso = False
 
-            if sucesso:
-                st.success("Consenso alcançado. O bloco foi adicionado em todos os nós.")
-                registrar_auditoria(
-                    "Sistema",
-                    "consenso_aprovado",
-                    f"Bloco '{evento_texto}' aceito (quorum {quorum})"
-                )
+         if sucesso:
+    st.success("Consenso alcançado. O bloco foi adicionado em todos os nós.")
 
-                st.session_state["web3_evento_texto"] = evento_texto
-                st.session_state["web3_hash"] = proposta["hash_bloco"]
-                # Apenas armazena os dados, o painel deve estar escondido por padrão
-                st.session_state["mostrar_web3"] = False 
+    # --------------------------------------------------------
+    # VISUALIZAÇÃO DAS MUDANÇAS DE HASH E AUTENTICAÇÃO
+    # --------------------------------------------------------
+    st.markdown("##### Auditoria dos Hashes dos Nós (Antes e Depois do Consenso)")
+    try:
+        # Captura o hash anterior de cada nó
+        hashes_antes = {n: df.iloc[-2]["hash_atual"][:16] if len(df) > 1 else "—" for n, df in nos.items()}
+        hashes_depois = {n: df.iloc[-1]["hash_atual"][:16] for n, df in nos.items()}
+        
+        auditoria_hash = pd.DataFrame({
+            "Nó": list(nos.keys()),
+            "Hash Anterior": [hashes_antes[n] for n in nos.keys()],
+            "Hash Atual": [hashes_depois[n] for n in nos.keys()]
+        })
+        
+        st.dataframe(auditoria_hash, use_container_width=True)
+        
+        st.caption("Cada nó assinou e atualizou o hash final da cadeia local após o consenso PoA.")
+    except Exception as e:
+        st.error(f"Erro ao exibir auditoria de hashes: {e}")
+
+    # --------------------------------------------------------
+    # REGISTRO DE AUDITORIA
+    # --------------------------------------------------------
+    registrar_auditoria(
+        "Sistema",
+        "consenso_aprovado",
+        f"Bloco '{evento_texto}' aceito (quorum {quorum})"
+    )
+
+    # Guarda os dados para uso posterior (ex: Web3)
+    st.session_state["web3_evento_texto"] = evento_texto
+    st.session_state["web3_hash"] = proposta["hash_bloco"]
+    st.session_state["mostrar_web3"] = False
+
 
             else:
                 st.warning("Quorum insuficiente. O bloco foi rejeitado e não foi adicionado.")
