@@ -38,7 +38,7 @@ try:
     )
 except ImportError as e:
     st.error(f"Erro de importação: {e}")
-    # Stubs para evitar falhas
+    # Stubs para fallback
     def gerar_hash(content, prev_hash): return hashlib.sha256((content + prev_hash).encode()).hexdigest()
     def criar_blockchain_inicial(df): return pd.DataFrame()
     def criar_nos(df): return {"Node_A": df}
@@ -59,7 +59,7 @@ st.set_page_config(page_title="SmartLog Blockchain", layout="wide")
 st.title("SmartLog Blockchain — Simulador de Consenso (PoA)")
 
 st.markdown("""
-*Simulador de consenso Proof-of-Authority para redes logísticas e privadas.*
+Simulador didático de consenso Proof-of-Authority (PoA) para redes privadas e logísticas.
 """)
 
 # ============================================================
@@ -102,11 +102,10 @@ with tab_main:
     st.header("Fluxo de Consenso Proof-of-Authority")
 
     consenso_ok = validar_consenso(nos)
-    status_msg = f"Blockchain com **{len(next(iter(nos.values())))}** blocos."
     if consenso_ok:
-        st.success(f"Sistema sincronizado e íntegro. {status_msg}")
+        st.success("✅ Sistema sincronizado e íntegro.")
     else:
-        st.warning(f"Divergência detectada entre os nós. {status_msg}")
+        st.warning("⚠️ Divergência detectada entre os nós.")
 
     st.divider()
 
@@ -120,9 +119,12 @@ with tab_main:
             propositor = st.selectbox("Nó propositor:", list(nos.keys()))
         with col_quorum:
             quorum = st.slider("Quorum mínimo:", 1, len(nos), 2)
-            st.caption(f"Quorum: {quorum}/{len(nos)} nós")
+            st.caption(f"Quorum necessário: {quorum}/{len(nos)}")
 
-        evento_texto = st.text_input("Descrição do evento:", "Entrega #104 — Saiu do depósito — SP → MG")
+        evento_texto = st.text_input(
+            "Descrição do evento:",
+            "Entrega #104 — Saiu do depósito — SP → MG"
+        )
 
         if st.button("🚀 Iniciar Simulação de Consenso", use_container_width=True):
             st.session_state["consenso_sucesso"] = False
@@ -154,46 +156,37 @@ with tab_main:
             if sucesso:
                 st.session_state["consenso_sucesso"] = True
                 novo_hash_display = proposta["hash_bloco"][:16]
-                st.success(f"✅ Consenso alcançado! Bloco adicionado. Novo Hash: `{novo_hash_display}...`")
+                st.success(f"✅ Consenso alcançado! Novo bloco adicionado. Hash: `{novo_hash_display}...`")
 
-                registrar_auditoria(
-                    "Sistema",
-                    "consenso_aprovado",
-                    f"Bloco '{evento_texto}' aceito (quorum {quorum})"
-                )
+                registrar_auditoria("Sistema", "consenso_aprovado", f"Bloco '{evento_texto}' aceito (quorum {quorum})")
 
                 # --------------------------------------------------------
                 # 🔍 AUDITORIA DE HASHES (Antes e Depois)
                 # --------------------------------------------------------
-                st.markdown("##### Auditoria de Hashes dos Nós (Antes ➜ Depois)")
+                st.markdown("##### Auditoria de Hashes (Antes ➜ Depois)")
                 comparacao_hash = []
                 for nome, df in nos.items():
                     if len(df) >= 2:
-                        hash_anterior = df.iloc[-2]['hash_atual']
-                        hash_atual = df.iloc[-1]['hash_atual']
-                        mudou = hash_anterior != hash_atual
+                        hash_ant = df.iloc[-2]['hash_atual']
+                        hash_atu = df.iloc[-1]['hash_atual']
+                        mudou = hash_ant != hash_atu
                         comparacao_hash.append({
                             "Nó": nome,
-                            "Hash Anterior": f"{hash_anterior[:8]}...{hash_anterior[-8:]}",
-                            "Hash Atual": f"{hash_atual[:8]}...{hash_atual[-8:]}",
+                            "Hash Anterior": f"{hash_ant[:8]}...{hash_ant[-8:]}",
+                            "Hash Atual": f"{hash_atu[:8]}...{hash_atu[-8:]}",
                             "Mudou?": "Sim" if mudou else "Não"
                         })
 
                 df_comp = pd.DataFrame(comparacao_hash)
-                def color_diff(val):
-                    return "color: #d9534f;" if val == "Sim" else "color: #5cb85c;"
-                st.dataframe(
-                    df_comp.style.applymap(color_diff, subset=["Mudou?"]),
-                    use_container_width=True
-                )
+                def color_diff(val): return "color:#d9534f" if val=="Sim" else "color:#5cb85c"
+                st.dataframe(df_comp.style.applymap(color_diff, subset=["Mudou?"]), use_container_width=True)
 
-                # Dados para Web3
                 st.session_state["web3_evento_texto"] = evento_texto
                 st.session_state["web3_hash"] = proposta["hash_bloco"]
                 st.session_state["mostrar_web3"] = False
             else:
-                st.warning("❌ Quorum insuficiente. O bloco foi rejeitado.")
-                registrar_auditoria("Sistema", "consenso_rejeitado", f"Bloco '{evento_texto}' rejeitado")
+                st.warning("❌ Quorum insuficiente. Bloco rejeitado.")
+                registrar_auditoria("Sistema", "consenso_rejeitado", f"Bloco '{evento_texto}' rejeitado.")
 
     # --------------------------------------------------------
     # VISUALIZAÇÃO WEB3 — ATIVADA POR BOTÃO
@@ -208,8 +201,66 @@ with tab_main:
             with st.container(border=True):
                 mostrar_demo_web3(st.session_state["web3_evento_texto"], st.session_state["web3_hash"])
 
+    # --------------------------------------------------------
+    # 🔥 UTILITÁRIOS FIRESTORE E AUDITORIA
+    # --------------------------------------------------------
+    st.divider()
+    st.subheader("Utilitários Firestore e Logs")
+
+    col_sync, col_audit = st.columns(2)
+
+    with col_sync:
+        with st.container(border=True):
+            st.markdown("##### Sincronização com Firestore")
+            col1, col2, col3 = st.columns(3)
+
+            with col1:
+                if st.button("☁️ Carregar da Nuvem", use_container_width=True):
+                    df = carregar_blockchain_firestore()
+                    if df is not None:
+                        st.session_state.blockchain_df = df
+                        nos["Node_A"] = df
+                        st.success("Blockchain carregada com sucesso!")
+                    else:
+                        st.warning("Nenhum dado encontrado no Firestore.")
+
+            with col2:
+                if st.button("💾 Salvar Blockchain", use_container_width=True):
+                    try:
+                        salvar_blockchain_firestore(nos["Node_A"])
+                        st.success("Blockchain salva na nuvem!")
+                    except Exception as e:
+                        st.error(f"Erro ao salvar: {e}")
+
+            with col3:
+                if st.button("🧹 Resetar Firestore e Sessão", use_container_width=True):
+                    try:
+                        limpar_blockchain_firestore()
+                        for k in list(st.session_state.keys()):
+                            del st.session_state[k]
+                        st.error("Sessão reiniciada. Recarregue a página.")
+                        st.stop()
+                    except Exception as e:
+                        st.error(f"Erro ao limpar: {e}")
+
+    with col_audit:
+        with st.container(border=True):
+            st.markdown("##### Log de Auditoria Manual")
+            col_a1, col_a2 = st.columns([1, 2])
+            with col_a1:
+                audit_actor = st.selectbox("Ator:", ["Usuário", "Sistema", "Nó de Validação"])
+            with col_a2:
+                audit_msg = st.text_input("Mensagem:", "Teste de log manual.")
+
+            if st.button("📝 Registrar Log Manual", use_container_width=True):
+                try:
+                    registrar_auditoria(audit_actor, "log_manual", audit_msg)
+                    st.success("Log registrado no Firestore.")
+                except Exception as e:
+                    st.error(f"Erro ao registrar log: {e}")
+
 # ============================================================
-# ABA 2 — FRAUDE
+# ABA FRAUDE — ATAQUE E RECUPERAÇÃO
 # ============================================================
 with tab_fraude:
     st.header("Simulação de Ataque e Recuperação de Nós")
@@ -227,7 +278,6 @@ with tab_fraude:
                 df = nos[node_to_corrupt].copy()
                 if len(df) > 0:
                     idx = len(df) - 1
-                    original = df.iloc[idx].copy().to_dict()
                     if corrupt_type == "Alterar último bloco":
                         df.at[idx, "etapa"] += " (ALTERADO)"
                         conteudo = f"{df.at[idx,'id_entrega']}-{df.at[idx,'source_center']}-{df.at[idx,'destination_name']}-{df.at[idx,'etapa']}-{df.at[idx,'timestamp']}-{df.at[idx,'risco']}"
@@ -259,5 +309,5 @@ with tab_fraude:
                 st.success("Nós restaurados com sucesso.")
 
 # ============================================================
-# FIM DO ARQUIVO
+# FIM
 # ============================================================
