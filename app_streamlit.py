@@ -183,19 +183,39 @@ with tab_main:
                 st.error(f"Erro na fase de Proposta/Votação: {e}")
                 st.stop()
             
-            # --- MODIFICADO: Aumentando a exibição do hash para 12 caracteres ---
+            # --- Exibição do Hash Proposto e Anterior ---
             hash_proposto = proposta["hash_bloco"]
             st.info(f"""
                 Hash Anterior (Base do Consenso): `{hash_anterior[:12]}...`  
                 Hash do Bloco Proposto: `{hash_proposto[:12]}...`
             """)
-            # ------------------------------------------------------------------
+            # -------------------------------------------
 
+            st.markdown("##### 1.1. Verificação de Integridade (Pré-Votação)")
+            col_integrity = st.columns(len(nos))
+            
+            # Novo bloco que mostra a comparação do hash anterior para justificar a assinatura
+            for i, (nome, df) in enumerate(nos.items()):
+                hash_no = df.iloc[-1]['hash_atual'] if len(df) > 0 else "0" * 64
+                # O nó só assina se o último hash que ele tem é igual ao hash anterior da proposta
+                compara_ok = (hash_no == hash_anterior)
+                
+                with col_integrity[i]:
+                    if compara_ok:
+                        st.success(f"Nó {nome}: ÍNTEGRO")
+                        st.caption(f"Último Hash do Nó corresponde ao Hash Anterior: `{hash_no[:12]}...`")
+                    else:
+                        st.error(f"Nó {nome}: CORROMPIDO / FORA DE SINCRONIA")
+                        st.caption(f"Esperado `{hash_anterior[:12]}...` | Achado `{hash_no[:12]}...`")
+
+            st.markdown("---")
+            
             st.markdown("##### Votação dos Nós (Assinaturas)")
             col_votes = st.columns(len(nos))
             votos_sim = 0
             for i, (no, assinatura) in enumerate(proposta["assinaturas"].items()):
                 with col_votes[i]:
+                    # Assinatura é baseada na verificação de integridade no módulo sb.votar_proposta
                     if assinatura.startswith("Recusado"):
                         st.error(f"Nó {no} recusou")
                     else:
