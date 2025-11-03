@@ -196,22 +196,22 @@ with tab_main:
             # Mantenha como False se quiser esconder o painel em rejeição
             st.session_state["mostrar_web3"] = True
 
-   # --------------------------------------------------------
-# 🌐 VISUALIZAÇÃO WEB3 (SOMENTE QUANDO O USUÁRIO CLICA)
+  # --------------------------------------------------------
+# 🌐 VISUALIZAÇÃO WEB3 (APARECE SOMENTE QUANDO O BOTÃO É CLICADO)
 # --------------------------------------------------------
 if "web3_evento_texto" in st.session_state and st.session_state["web3_evento_texto"]:
-    # Garante que a flag existe no estado
+    # Inicializa o estado de exibição se ainda não existir
     if "mostrar_web3" not in st.session_state:
         st.session_state["mostrar_web3"] = False
 
     st.divider()
-    st.subheader("Integração Web3 (Simulada)")
+    st.markdown("### 🔗 Integração com Web3 (Simulada)")
 
-    # Botão de toggle
-    if st.button("🚀 Mostrar / Ocultar Simulação Web3", use_container_width=True, key="btn_toggle_web3"):
+    # Botão único para mostrar/ocultar
+    if st.button("🚀 Mostrar / Ocultar Simulação Web3", use_container_width=True, key="toggle_web3"):
         st.session_state["mostrar_web3"] = not st.session_state["mostrar_web3"]
 
-    # Exibe a simulação somente após clique
+    # ✅ Só mostra a simulação SE o botão estiver ativado
     if st.session_state["mostrar_web3"]:
         st.divider()
         mostrar_demo_web3(
