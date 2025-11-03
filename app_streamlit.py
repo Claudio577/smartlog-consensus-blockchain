@@ -77,6 +77,9 @@ if "nos" not in st.session_state:
 
 nos = st.session_state.nos
 chaves = st.session_state.chaves
+# Compatibilidade: renomeia nós antigos (Node_ -> Nó_)
+nos = {nome.replace("Node_", "Nó_"): df for nome, df in nos.items()}
+
 
 # ============================================================
 # INTERFACE DIVIDIDA EM ABAS
