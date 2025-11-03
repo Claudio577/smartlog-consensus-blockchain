@@ -61,6 +61,6 @@ def mostrar_demo_web3(evento_texto, hash_bloco_confirmado):
     <p style='font-size: 14px;'>
     **Dados Persistidos no Contrato:** O <code>hash_bloco_confirmado</code> 
     (<code>{hash_bloco_confirmado[:24]}...</code>) e o dado logístico 
-    foram registrados no Smart Contract no Ethereum (ou equivalente). Esta é a âncora de segurança Web3.
+    foram registrados no Smart Contract em uma plataforma DLT permissionada (como Ethereum, Hyperledger Fabric ou Quorum). O registro deste hash garante a imutabilidade do dado logístico, funcionando como a prova de autenticidade (Proof-of-Existence) na DLT.
     </p>
     """, unsafe_allow_html=True)
