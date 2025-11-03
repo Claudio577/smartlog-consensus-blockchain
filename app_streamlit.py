@@ -123,7 +123,8 @@ with tab_main:
     with st.expander("Status da Rede e Hashes Finais", expanded=False):
         col_metrics = st.columns(len(nos))
         for i, (nome, df) in enumerate(nos.items()):
-            hash_display = df.iloc[-1]['hash_atual'][:12] if len(df) > 0 else "VAZIO"
+            # Aumentando o display do hash para melhor comparação
+            hash_display = df.iloc[-1]['hash_atual'][:12] if len(df) > 0 else "VAZIO" 
             
             with col_metrics[i]:
                 st.metric(
@@ -172,6 +173,7 @@ with tab_main:
             try:
                 hash_anterior = max(set(hashes_finais), key=hashes_finais.count)
             except ValueError:
+                # Se não houver blocos, usa o hash inicial (Gênesis)
                 hash_anterior = "0" * 64
 
             try:
@@ -181,12 +183,13 @@ with tab_main:
                 st.error(f"Erro na fase de Proposta/Votação: {e}")
                 st.stop()
             
-            # --- Adicionado para mostrar o encadeamento dos hashes ---
+            # --- MODIFICADO: Aumentando a exibição do hash para 12 caracteres ---
+            hash_proposto = proposta["hash_bloco"]
             st.info(f"""
-                Hash Anterior (Base do Consenso): `{hash_anterior[-6:]}...`  
-                Hash do Bloco Proposto: `{proposta["hash_bloco"][-6:]}...`
+                Hash Anterior (Base do Consenso): `{hash_anterior[:12]}...`  
+                Hash do Bloco Proposto: `{hash_proposto[:12]}...`
             """)
-            # -------------------------------------------------------
+            # ------------------------------------------------------------------
 
             st.markdown("##### Votação dos Nós (Assinaturas)")
             col_votes = st.columns(len(nos))
@@ -210,10 +213,10 @@ with tab_main:
                 sucesso = False
 
             if sucesso:
-                # --- Modificado para incluir os hashes no sucesso ---
-                novo_hash = proposta["hash_bloco"][-6:]
-                st.success(f"Consenso alcançado. O bloco foi adicionado em todos os nós. (Novo Hash: `{novo_hash}...`)")
-                # --------------------------------------------------
+                # --- MODIFICADO: Incluindo 12 caracteres do novo hash no sucesso ---
+                novo_hash_display = proposta["hash_bloco"][:12]
+                st.success(f"Consenso alcançado. O bloco foi adicionado em todos os nós. (Novo Hash: `{novo_hash_display}...`)")
+                # ------------------------------------------------------------------
                 registrar_auditoria(
                     "Sistema",
                     "consenso_aprovado",
@@ -378,6 +381,7 @@ with tab_fraude:
                     st.markdown("##### Comparação do Bloco Corrompido:")
                     comparacao = pd.DataFrame([
                         {"Campo": "Etapa", "Antes": original["etapa"], "Depois": modificado["etapa"]},
+                        # Aumentando a exibição do hash para 16 caracteres para melhor visualização na tabela
                         {"Campo": "Hash Atual", "Antes": original["hash_atual"][:16] + "...", "Depois": modificado["hash_atual"][:16] + "..."},
                     ])
                     st.dataframe(comparacao, use_container_width=True)
@@ -425,7 +429,8 @@ with tab_fraude:
 
     if st.button("Mostrar Resumo Completo das Blockchains (por Nó)", key="fraude_summary"):
         for nome, df in nos.items():
-            hash_final = df.iloc[-1]['hash_atual'][:16] if len(df) > 0 else "VAZIO"
+            # Aumentando o display do hash na tabela resumo
+            hash_final = df.iloc[-1]['hash_atual'][:16] if len(df) > 0 else "VAZIO" 
             st.markdown(f"**{nome}** — **{len(df)}** blocos — hash final `{hash_final}...`")
             st.dataframe(
                 df[["bloco_id", "id_entrega", "source_center", "destination_name", "etapa", "hash_atual"]].tail(5),
