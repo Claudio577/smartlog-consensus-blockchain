@@ -61,10 +61,10 @@ def validar_blockchain(blockchain_df):
 # ===========================================================
 
 def criar_nos(blockchain_df, total=3):
-    """Cria múltiplos nós a partir da blockchain base."""
+    """Cria múltiplos nós a partir da blockchain base (Nó_A, Nó_B, Nó_C)."""
     nos = {}
     for i in range(total):
-        nos[f"Node_{chr(65 + i)}"] = blockchain_df.copy()
+        nos[f"Nó_{chr(65 + i)}"] = blockchain_df.copy()
     return nos
 
 
