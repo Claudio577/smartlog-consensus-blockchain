@@ -197,7 +197,7 @@ with tab_main:
             st.session_state["mostrar_web3"] = True
 
   # --------------------------------------------------------
-# VISUALIZAÇÃO WEB3 — MODO LIMPO E MINIMALISTA
+# VISUALIZAÇÃO WEB3 — ESTILO LIMPO E ALINHADO À ESQUERDA
 # --------------------------------------------------------
 if "web3_evento_texto" in st.session_state and st.session_state["web3_evento_texto"]:
     # Inicializa o estado de exibição se ainda não existir
@@ -205,25 +205,16 @@ if "web3_evento_texto" in st.session_state and st.session_state["web3_evento_tex
         st.session_state["mostrar_web3"] = False
 
     st.divider()
+    st.markdown("#### Integração Web3 (Simulada)")
+    st.caption("Visualize os detalhes da transação Web3 simulada abaixo.")
 
-    # Cabeçalho centralizado e botão
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        st.markdown(
-            "<h4 style='text-align:center; margin-bottom:0;'>Integração Web3 (Simulada)</h4>",
-            unsafe_allow_html=True
-        )
-        st.markdown(
-            "<p style='text-align:center; font-size:13px; color:#666;'>Visualize os detalhes da transação Web3 simulada.</p>",
-            unsafe_allow_html=True
-        )
-        if st.button("Mostrar / Ocultar Detalhes Web3", use_container_width=True, key="toggle_web3"):
-            st.session_state["mostrar_web3"] = not st.session_state["mostrar_web3"]
+    # Botão simples e discreto
+    if st.button("Mostrar / Ocultar Detalhes Web3", key="toggle_web3", use_container_width=True):
+        st.session_state["mostrar_web3"] = not st.session_state["mostrar_web3"]
 
-    # Exibe o painel apenas se o botão for ativado
+    # Exibe apenas se o botão for ativado
     if st.session_state["mostrar_web3"]:
         st.divider()
-        st.markdown("<div style='margin-top:-15px'></div>", unsafe_allow_html=True)
         with st.container():
             mostrar_demo_web3(
                 st.session_state["web3_evento_texto"],
