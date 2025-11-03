@@ -247,6 +247,35 @@ with tab_main:
                     "consenso_aprovado",
                     f"Bloco '{evento_texto}' aceito (quorum {quorum})"
                 )
+    # --------------------------------------------------------
+    # 🔍 AUDITORIA DE HASHES (Antes e Depois do Consenso)
+    # --------------------------------------------------------
+    st.markdown("##### Auditoria de Hashes dos Nós (Antes ➜ Depois)")
+    st.caption("Comparação dos hashes dos nós antes e depois da sincronização do novo bloco.")
+
+    comparacao_hash = []
+    for nome, df in nos.items():
+        if len(df) >= 2:
+            hash_anterior = df.iloc[-2]['hash_atual']
+            hash_atual = df.iloc[-1]['hash_atual']
+            mudou = hash_anterior != hash_atual
+            comparacao_hash.append({
+                "Nó": nome,
+                "Hash Anterior": f"{hash_anterior[:8]}...{hash_anterior[-8:]}",
+                "Hash Atual": f"{hash_atual[:8]}...{hash_atual[-8:]}",
+                "Mudou?": "Sim" if mudou else "Não"
+            })
+
+    df_comp = pd.DataFrame(comparacao_hash)
+
+    # 🔹 Cores para destaque visual
+    def color_diff(val):
+        return "color: #d9534f;" if val == "Sim" else "color: #5cb85c;"
+
+    st.dataframe(
+        df_comp.style.applymap(color_diff, subset=["Mudou?"]),
+        use_container_width=True
+    )
 
                 st.session_state["web3_evento_texto"] = evento_texto
                 st.session_state["web3_hash"] = proposta["hash_bloco"]
