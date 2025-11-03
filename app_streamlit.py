@@ -108,6 +108,29 @@ with tab_main:
         st.warning("⚠️ Divergência detectada entre os nós.")
 
     st.divider()
+with tab_main:
+    st.header("Fluxo de Consenso Proof-of-Authority")
+
+    consenso_ok = validar_consenso(nos)
+    if consenso_ok:
+        st.success("✅ Sistema sincronizado e íntegro.")
+    else:
+        st.warning("⚠️ Divergência detectada entre os nós.")
+
+    # --------------------------------------------------------
+    # STATUS DA REDE E HASHES INICIAIS
+    # --------------------------------------------------------
+    with st.expander("🔍 Status da Rede e Hashes Finais (Antes da Proposta)", expanded=False):
+        col_metrics = st.columns(len(nos))
+        for i, (nome, df) in enumerate(nos.items()):
+            hash_display = df.iloc[-1]["hash_atual"] if len(df) > 0 else "VAZIO"
+            with col_metrics[i]:
+                st.metric(
+                    label=f"Nó: {nome}",
+                    value=f"{hash_display[:12]}...{hash_display[-6:] if len(hash_display)>6 else ''}",
+                    delta=f"Blocos: {len(df)}"
+                )
+    st.divider()
 
     # --------------------------------------------------------
     # PROPOSTA DE NOVO BLOCO
