@@ -200,18 +200,18 @@ with tab_main:
             )
 
             # ✅ Exibe o painel Web3 (simulado)
-# Armazena o estado no session_state para não sumir após interações
-st.session_state["web3_evento_texto"] = evento_texto
-st.session_state["web3_hash"] = proposta["hash_bloco"]
-st.session_state["mostrar_web3"] = True
+            # Armazena o estado no session_state para não sumir após interações
+            st.session_state["web3_evento_texto"] = evento_texto
+            st.session_state["web3_hash"] = proposta["hash_bloco"]
+            st.session_state["mostrar_web3"] = True
 
-# Mostra o painel Web3 dinamicamente, mesmo após reruns
-if st.session_state.get("mostrar_web3", False):
-    with st.expander("Visualização Web3 (Simulada)", expanded=True):
-        mostrar_demo_web3(
-            st.session_state["web3_evento_texto"],
-            st.session_state["web3_hash"]
-        )
+            # Mostra o painel Web3 dinamicamente, mesmo após reruns
+            if st.session_state.get("mostrar_web3", False):
+                with st.expander("Visualização Web3 (Simulada)", expanded=True):
+                    mostrar_demo_web3(
+                        st.session_state["web3_evento_texto"],
+                        st.session_state["web3_hash"]
+                    )
 
 
         else:
