@@ -93,8 +93,10 @@ if "nos" not in st.session_state:
     st.session_state["mostrar_web3"] = False
     st.session_state["web3_evento_texto"] = None
     st.session_state["web3_hash"] = None
+    st.session_state["consenso_sucesso"] = False # Flag para controlar o display Pós-Consenso
 
 
+# Recupera o estado
 nos = st.session_state.nos
 chaves = st.session_state.chaves
 
@@ -110,7 +112,7 @@ with tab_main:
     st.header("Fluxo de Consenso Proof-of-Authority (PoA)")
     
     # --------------------------------------------------------
-    # STATUS DA REDE
+    # STATUS DA REDE (Pré-Proposta)
     # --------------------------------------------------------
     consenso_ok = validar_consenso(nos)
     
@@ -120,7 +122,7 @@ with tab_main:
     else:
         st.warning(f"Divergência detectada entre os nós. {status_msg}")
 
-    with st.expander("Status da Rede e Hashes Finais", expanded=False):
+    with st.expander("Status da Rede e Hashes Finais (Antes da Proposta)", expanded=False):
         col_metrics = st.columns(len(nos))
         for i, (nome, df) in enumerate(nos.items()):
             # Aumentando o display do hash para melhor comparação
@@ -167,6 +169,9 @@ with tab_main:
         st.markdown("---")
         if st.button("INICIAR SIMULAÇÃO DE CONSENSO", key="botao_consenso_main", type="primary", use_container_width=True):
             
+            # Resetamos a flag de sucesso ao iniciar nova proposta
+            st.session_state["consenso_sucesso"] = False
+
             st.info(f"Proposta: O nó {propositor} está propondo o bloco: '{evento_texto}'")
 
             hashes_finais = [df.iloc[-1]["hash_atual"] for df in nos.values()]
@@ -194,10 +199,9 @@ with tab_main:
             st.markdown("##### 1.1. Verificação de Integridade (Pré-Votação)")
             col_integrity = st.columns(len(nos))
             
-            # Novo bloco que mostra a comparação do hash anterior para justificar a assinatura
+            # Verifica se o hash do nó bate com o hash anterior da proposta para justificar a assinatura
             for i, (nome, df) in enumerate(nos.items()):
                 hash_no = df.iloc[-1]['hash_atual'] if len(df) > 0 else "0" * 64
-                # O nó só assina se o último hash que ele tem é igual ao hash anterior da proposta
                 compara_ok = (hash_no == hash_anterior)
                 
                 with col_integrity[i]:
@@ -215,7 +219,6 @@ with tab_main:
             votos_sim = 0
             for i, (no, assinatura) in enumerate(proposta["assinaturas"].items()):
                 with col_votes[i]:
-                    # Assinatura é baseada na verificação de integridade no módulo sb.votar_proposta
                     if assinatura.startswith("Recusado"):
                         st.error(f"Nó {no} recusou")
                     else:
@@ -233,10 +236,11 @@ with tab_main:
                 sucesso = False
 
             if sucesso:
-                # --- Exibição do novo hash no sucesso (mantida da versão anterior) ---
+                st.session_state["consenso_sucesso"] = True # Define sucesso
+                
                 novo_hash_display = proposta["hash_bloco"][:12]
                 st.success(f"Consenso alcançado. O bloco foi adicionado em todos os nós. (Novo Hash: `{novo_hash_display}...`)")
-                # ------------------------------------------------------------------
+                
                 registrar_auditoria(
                     "Sistema",
                     "consenso_aprovado",
@@ -245,7 +249,6 @@ with tab_main:
 
                 st.session_state["web3_evento_texto"] = evento_texto
                 st.session_state["web3_hash"] = proposta["hash_bloco"]
-                # Apenas armazena os dados, o painel deve estar escondido por padrão
                 st.session_state["mostrar_web3"] = False 
 
             else:
@@ -258,6 +261,27 @@ with tab_main:
                 st.session_state["mostrar_web3"] = False
                 st.session_state["web3_evento_texto"] = None
                 st.session_state["web3_hash"] = None
+            
+            st.rerun() # Força o rerun para exibir o status pós-consenso
+
+    # --------------------------------------------------------
+    # 2.1. STATUS PÓS-CONSENSO (NOVA SEÇÃO)
+    # --------------------------------------------------------
+    if st.session_state.get("consenso_sucesso", False):
+        st.markdown("##### 2.1. Status Pós-Consenso (Nós Sincronizados)")
+        st.caption("Confirmando que o novo bloco foi sincronizado. Os hashes atuais devem ser idênticos.")
+        
+        col_post_status = st.columns(len(nos))
+        for i, (nome, df) in enumerate(nos.items()):
+            # Pega o NOVO hash atual após a aplicação do consenso
+            hash_display = df.iloc[-1]['hash_atual'][:12] if len(df) > 0 else "VAZIO" 
+            
+            with col_post_status[i]:
+                st.metric(
+                    label=f"Nó {nome} (Novo Hash)",
+                    value=f"{hash_display}...",
+                )
+        st.markdown("---")
 
 
     # --------------------------------------------------------
