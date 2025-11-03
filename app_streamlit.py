@@ -197,21 +197,23 @@ with tab_main:
             st.session_state["mostrar_web3"] = True
 
    # --------------------------------------------------------
-# VISUALIZAÇÃO WEB3 (ATIVADA SOMENTE POR BOTÃO)
+# 🌐 VISUALIZAÇÃO WEB3 (SOMENTE QUANDO O USUÁRIO CLICA)
 # --------------------------------------------------------
-if st.session_state.get("web3_evento_texto"):
-    # Inicializa o estado de exibição
+if "web3_evento_texto" in st.session_state and st.session_state["web3_evento_texto"]:
+    # Garante que a flag existe no estado
     if "mostrar_web3" not in st.session_state:
         st.session_state["mostrar_web3"] = False
 
-    # Botão que ativa ou oculta a visualização
-    if st.button("🔗 Mostrar / Ocultar Integração Web3 (Simulada)", key="botao_web3", use_container_width=True):
+    st.divider()
+    st.subheader("Integração Web3 (Simulada)")
+
+    # Botão de toggle
+    if st.button("🚀 Mostrar / Ocultar Simulação Web3", use_container_width=True, key="btn_toggle_web3"):
         st.session_state["mostrar_web3"] = not st.session_state["mostrar_web3"]
 
-    # Exibe o painel completo SOMENTE após o clique
+    # Exibe a simulação somente após clique
     if st.session_state["mostrar_web3"]:
         st.divider()
-        st.markdown("## 🌐 Integração Web3 (Simulada)")
         mostrar_demo_web3(
             st.session_state["web3_evento_texto"],
             st.session_state["web3_hash"]
