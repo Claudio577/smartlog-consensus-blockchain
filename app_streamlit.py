@@ -93,8 +93,9 @@ if "nos" not in st.session_state:
     st.session_state["mostrar_web3"] = False
     st.session_state["web3_evento_texto"] = None
     st.session_state["web3_hash"] = None
+    st.session_state["consenso_sucesso"] = False # Novo estado para controlar a exibição
 
-
+# Recupera o estado
 nos = st.session_state.nos
 chaves = st.session_state.chaves
 
@@ -167,6 +168,9 @@ with tab_main:
         st.markdown("---")
         if st.button("INICIAR SIMULAÇÃO DE CONSENSO", key="botao_consenso_main", type="primary", use_container_width=True):
             
+            # Limpa o status anterior de sucesso
+            st.session_state["consenso_sucesso"] = False 
+
             st.info(f"Proposta: O nó {propositor} está propondo o bloco: '{evento_texto}'")
 
             hashes_finais = [df.iloc[-1]["hash_atual"] for df in nos.values()]
@@ -233,6 +237,8 @@ with tab_main:
                 sucesso = False
 
             if sucesso:
+                st.session_state["consenso_sucesso"] = True # Define sucesso
+                
                 # --- MODIFICADO: Incluindo 12 caracteres do novo hash no sucesso ---
                 novo_hash_display = proposta["hash_bloco"][:12]
                 st.success(f"Consenso alcançado. O bloco foi adicionado em todos os nós. (Novo Hash: `{novo_hash_display}...`)")
@@ -258,6 +264,26 @@ with tab_main:
                 st.session_state["mostrar_web3"] = False
                 st.session_state["web3_evento_texto"] = None
                 st.session_state["web3_hash"] = None
+            
+            st.rerun() # Força o rerun para atualizar o display de status
+
+    # --------------------------------------------------------
+    # 2.1. STATUS PÓS-CONSENSO (NOVA SEÇÃO)
+    # --------------------------------------------------------
+    if st.session_state["consenso_sucesso"]:
+        st.markdown("##### 2.1. Status Pós-Consenso (Nós Atualizados)")
+        st.caption("Confirmando que o novo bloco foi sincronizado em todos os nós.")
+        
+        col_post_status = st.columns(len(nos))
+        for i, (nome, df) in enumerate(nos.items()):
+            hash_display = df.iloc[-1]['hash_atual'][:12] if len(df) > 0 else "VAZIO" 
+            
+            with col_post_status[i]:
+                st.metric(
+                    label=f"Nó {nome} (Atualizado)",
+                    value=f"{hash_display}...",
+                )
+        st.markdown("---")
 
 
     # --------------------------------------------------------
