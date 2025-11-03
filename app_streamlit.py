@@ -197,7 +197,7 @@ with tab_main:
             st.session_state["mostrar_web3"] = True
 
   # --------------------------------------------------------
-# 🌐 VISUALIZAÇÃO WEB3 (APARECE SOMENTE QUANDO O BOTÃO É CLICADO)
+# VISUALIZAÇÃO WEB3 — MODO LIMPO E MINIMALISTA
 # --------------------------------------------------------
 if "web3_evento_texto" in st.session_state and st.session_state["web3_evento_texto"]:
     # Inicializa o estado de exibição se ainda não existir
@@ -205,19 +205,30 @@ if "web3_evento_texto" in st.session_state and st.session_state["web3_evento_tex
         st.session_state["mostrar_web3"] = False
 
     st.divider()
-    st.markdown("### 🔗 Integração com Web3 (Simulada)")
 
-    # Botão único para mostrar/ocultar
-    if st.button("🚀 Mostrar / Ocultar Simulação Web3", use_container_width=True, key="toggle_web3"):
-        st.session_state["mostrar_web3"] = not st.session_state["mostrar_web3"]
+    # Cabeçalho centralizado e botão
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.markdown(
+            "<h4 style='text-align:center; margin-bottom:0;'>Integração Web3 (Simulada)</h4>",
+            unsafe_allow_html=True
+        )
+        st.markdown(
+            "<p style='text-align:center; font-size:13px; color:#666;'>Visualize os detalhes da transação Web3 simulada.</p>",
+            unsafe_allow_html=True
+        )
+        if st.button("Mostrar / Ocultar Detalhes Web3", use_container_width=True, key="toggle_web3"):
+            st.session_state["mostrar_web3"] = not st.session_state["mostrar_web3"]
 
-    # ✅ Só mostra a simulação SE o botão estiver ativado
+    # Exibe o painel apenas se o botão for ativado
     if st.session_state["mostrar_web3"]:
         st.divider()
-        mostrar_demo_web3(
-            st.session_state["web3_evento_texto"],
-            st.session_state["web3_hash"]
-        )
+        st.markdown("<div style='margin-top:-15px'></div>", unsafe_allow_html=True)
+        with st.container():
+            mostrar_demo_web3(
+                st.session_state["web3_evento_texto"],
+                st.session_state["web3_hash"]
+            )
 
 
     # --------------------------------------------------------
