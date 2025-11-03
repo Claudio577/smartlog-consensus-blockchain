@@ -1,9 +1,6 @@
 # ============================================================
 # SmartLog Blockchain — Simulador de Consenso e Fraude
 # ============================================================
-# Interface visual que demonstra consenso Proof-of-Authority
-# com simulação de corrupção e recuperação de nós.
-# ============================================================
 
 import streamlit as st
 import pandas as pd
@@ -38,7 +35,6 @@ try:
     )
 except ImportError as e:
     st.error(f"Erro de importação: {e}")
-    # Stubs para fallback
     def gerar_hash(content, prev_hash): return hashlib.sha256((content + prev_hash).encode()).hexdigest()
     def criar_blockchain_inicial(df): return pd.DataFrame()
     def criar_nos(df): return {"Node_A": df}
@@ -57,10 +53,7 @@ except ImportError as e:
 # ============================================================
 st.set_page_config(page_title="SmartLog Blockchain", layout="wide")
 st.title("SmartLog Blockchain — Simulador de Consenso (PoA)")
-
-st.markdown("""
-Simulador didático de consenso Proof-of-Authority (PoA) para redes privadas e logísticas.
-""")
+st.markdown("Simulador didático de consenso Proof-of-Authority (PoA) para redes privadas e logísticas.")
 
 # ============================================================
 # ESTADO INICIAL
@@ -86,6 +79,7 @@ if "nos" not in st.session_state:
     st.session_state["web3_evento_texto"] = None
     st.session_state["web3_hash"] = None
     st.session_state["consenso_sucesso"] = False
+    st.session_state["df_auditoria_hash"] = None
 
 nos = st.session_state.nos
 chaves = st.session_state.chaves
@@ -108,29 +102,27 @@ with tab_main:
         st.warning("Divergência detectada entre os nós.")
 
     # --------------------------------------------------------
-    # STATUS DA REDE E HASHES INICIAIS
+    # STATUS INICIAL DOS NÓS
     # --------------------------------------------------------
     with st.expander("Status da Rede e Hashes Finais (Antes da Proposta)", expanded=False):
-        col_metrics = st.columns(len(nos))
+        cols = st.columns(len(nos))
         for i, (nome, df) in enumerate(nos.items()):
             hash_display = df.iloc[-1]["hash_atual"] if len(df) > 0 else "VAZIO"
-            with col_metrics[i]:
+            with cols[i]:
                 st.metric(
-                    label=f"Nó: {nome}",
-                    value=f"{hash_display[:12]}...{hash_display[-6:] if len(hash_display)>6 else ''}",
+                    label=f"Nó {nome}",
+                    value=f"{hash_display[:12]}...{hash_display[-6:]}",
                     delta=f"Blocos: {len(df)}"
                 )
-    st.divider()
 
-    # --------------------------------------------------------
-    # PROPOSTA DE NOVO BLOCO
-    # --------------------------------------------------------
+    st.divider()
     st.subheader("1. Proposta e Votação de Novo Bloco")
+
     with st.container(border=True):
-        col_prop, col_quorum = st.columns([2, 1])
-        with col_prop:
+        col1, col2 = st.columns([2, 1])
+        with col1:
             propositor = st.selectbox("Nó propositor:", list(nos.keys()))
-        with col_quorum:
+        with col2:
             quorum = st.slider("Quorum mínimo:", 1, len(nos), 2)
             st.caption(f"Quorum necessário: {quorum}/{len(nos)}")
 
@@ -138,8 +130,8 @@ with tab_main:
 
         if st.button("Iniciar Simulação de Consenso", use_container_width=True):
             st.session_state["consenso_sucesso"] = False
-            st.info(f"Proposta: {propositor} propôs o bloco '{evento_texto}'")
 
+            st.info(f"O nó {propositor} propôs o bloco: '{evento_texto}'")
             hashes_finais = [df.iloc[-1]["hash_atual"] for df in nos.values()]
             hash_anterior = max(set(hashes_finais), key=hashes_finais.count)
 
@@ -150,30 +142,20 @@ with tab_main:
                 st.error(f"Erro na proposta/votação: {e}")
                 st.stop()
 
-            st.markdown("##### Votação dos Nós")
-            col_votes = st.columns(len(nos))
-            votos_sim = 0
-            for i, (no, assinatura) in enumerate(proposta["assinaturas"].items()):
-                with col_votes[i]:
-                    if assinatura.startswith("Recusado"):
-                        st.error(f"{no}: recusou")
-                    else:
-                        st.success(f"{no}: assinou")
-                        votos_sim += 1
-
+            votos_sim = sum(1 for a in proposta["assinaturas"].values() if not a.startswith("Recusado"))
             sucesso = sb.aplicar_consenso(proposta, nos, quorum=quorum)
 
             if sucesso:
                 st.session_state["consenso_sucesso"] = True
-                novo_hash_display = proposta["hash_bloco"][:16]
-                st.success(f"Consenso alcançado! Novo bloco adicionado. Hash: `{novo_hash_display}...`")
+                st.session_state["ultimo_evento"] = evento_texto
+                st.session_state["ultimo_hash"] = proposta["hash_bloco"]
 
-                registrar_auditoria("Sistema", "consenso_aprovado", f"Bloco '{evento_texto}' aceito (quorum {quorum})")
+                st.success(f"Consenso alcançado! Novo bloco adicionado. Hash: `{proposta['hash_bloco'][:16]}...`")
 
-                # --------------------------------------------------------
-                # AUDITORIA DE HASHES (Antes e Depois)
-                # --------------------------------------------------------
-                st.markdown("##### Auditoria de Hashes (Antes ➜ Depois)")
+                registrar_auditoria("Sistema", "consenso_aprovado",
+                                    f"Bloco '{evento_texto}' aceito (quorum {quorum})")
+
+                # Monta a auditoria de hashes
                 comparacao_hash = []
                 for nome, df in nos.items():
                     if len(df) >= 2:
@@ -186,35 +168,44 @@ with tab_main:
                             "Hash Atual": f"{hash_atu[:8]}...{hash_atu[-8:]}",
                             "Mudou?": "Sim" if mudou else "Não"
                         })
-
-                df_comp = pd.DataFrame(comparacao_hash)
-                def color_diff(val): return "color:#d9534f" if val=="Sim" else "color:#5cb85c"
-                st.dataframe(df_comp.style.applymap(color_diff, subset=["Mudou?"]), use_container_width=True)
+                st.session_state["df_auditoria_hash"] = pd.DataFrame(comparacao_hash)
 
                 st.session_state["web3_evento_texto"] = evento_texto
                 st.session_state["web3_hash"] = proposta["hash_bloco"]
                 st.session_state["mostrar_web3"] = False
 
-                # --------------------------------------------------------
-                # BOTÃO PARA ADICIONAR NOVO BLOCO (FORA DA AUDITORIA)
-                # --------------------------------------------------------
-                st.divider()
-                st.subheader("Adicionar Novo Bloco")
-                st.caption("Propor um novo evento logístico e iniciar uma nova rodada de consenso.")
-
-                if st.button("Criar Nova Proposta de Bloco", use_container_width=True):
-                    st.session_state["web3_evento_texto"] = None
-                    st.session_state["web3_hash"] = None
-                    st.session_state["mostrar_web3"] = False
-                    st.session_state["consenso_sucesso"] = False
-                    st.experimental_rerun()
-
             else:
                 st.warning("Quorum insuficiente. Bloco rejeitado.")
-                registrar_auditoria("Sistema", "consenso_rejeitado", f"Bloco '{evento_texto}' rejeitado.")
+                registrar_auditoria("Sistema", "consenso_rejeitado",
+                                    f"Bloco '{evento_texto}' rejeitado.")
 
     # --------------------------------------------------------
-    # VISUALIZAÇÃO WEB3 — ATIVADA POR BOTÃO
+    # AUDITORIA E BOTÃO DE NOVO BLOCO (PERSISTENTE)
+    # --------------------------------------------------------
+    if st.session_state.get("consenso_sucesso", False):
+        st.divider()
+        st.subheader("Auditoria de Hashes (Antes ➜ Depois)")
+        st.caption("Comparação dos hashes dos nós antes e depois da adição do bloco.")
+
+        if st.session_state["df_auditoria_hash"] is not None:
+            df_comp = st.session_state["df_auditoria_hash"]
+            def color_diff(val): return "color:#d9534f" if val == "Sim" else "color:#5cb85c"
+            st.dataframe(df_comp.style.applymap(color_diff, subset=["Mudou?"]),
+                         use_container_width=True)
+
+        st.divider()
+        st.subheader("Adicionar Novo Bloco")
+        st.caption("Crie uma nova proposta de bloco e inicie outra rodada de consenso.")
+        if st.button("Criar Nova Proposta de Bloco", use_container_width=True, key="novo_bloco_global"):
+            st.session_state["web3_evento_texto"] = None
+            st.session_state["web3_hash"] = None
+            st.session_state["mostrar_web3"] = False
+            st.session_state["consenso_sucesso"] = False
+            st.session_state["df_auditoria_hash"] = None
+            st.experimental_rerun()
+
+    # --------------------------------------------------------
+    # VISUALIZAÇÃO WEB3 (SOMENTE POR BOTÃO)
     # --------------------------------------------------------
     if st.session_state["web3_evento_texto"]:
         st.divider()
@@ -224,10 +215,11 @@ with tab_main:
 
         if st.session_state["mostrar_web3"]:
             with st.container(border=True):
-                mostrar_demo_web3(st.session_state["web3_evento_texto"], st.session_state["web3_hash"])
+                mostrar_demo_web3(st.session_state["web3_evento_texto"],
+                                  st.session_state["web3_hash"])
 
     # --------------------------------------------------------
-    # UTILITÁRIOS FIRESTORE E AUDITORIA MANUAL
+    # FIRESTORE E AUDITORIA MANUAL
     # --------------------------------------------------------
     st.divider()
     st.subheader("Utilitários Firestore e Logs")
@@ -245,15 +237,15 @@ with tab_main:
                     if df is not None:
                         st.session_state.blockchain_df = df
                         nos["Node_A"] = df
-                        st.success("Blockchain carregada com sucesso!")
+                        st.success("Blockchain carregada com sucesso.")
                     else:
-                        st.warning("Nenhum dado encontrado no Firestore.")
+                        st.warning("Nenhum dado encontrado.")
 
             with col2:
                 if st.button("Salvar Blockchain", use_container_width=True):
                     try:
                         salvar_blockchain_firestore(nos["Node_A"])
-                        st.success("Blockchain salva na nuvem!")
+                        st.success("Blockchain salva na nuvem.")
                     except Exception as e:
                         st.error(f"Erro ao salvar: {e}")
 
@@ -276,7 +268,6 @@ with tab_main:
                 audit_actor = st.selectbox("Ator:", ["Usuário", "Sistema", "Nó de Validação"])
             with col_a2:
                 audit_msg = st.text_input("Mensagem:", "Teste de log manual.")
-
             if st.button("Registrar Log Manual", use_container_width=True):
                 try:
                     registrar_auditoria(audit_actor, "log_manual", audit_msg)
@@ -289,7 +280,6 @@ with tab_main:
 # ============================================================
 with tab_fraude:
     st.header("Simulação de Ataque e Recuperação de Nós")
-    st.markdown("Demonstração didática de corrupção proposital em um nó.")
     st.divider()
 
     with st.container(border=True):
@@ -297,7 +287,8 @@ with tab_fraude:
         colA, colB = st.columns(2)
         with colA:
             node_to_corrupt = st.selectbox("Escolha o nó:", list(nos.keys()))
-            corrupt_type = st.radio("Tipo de corrupção:", ["Alterar último bloco", "Alterar hash final"])
+            corrupt_type = st.radio("Tipo de corrupção:",
+                                    ["Alterar último bloco", "Alterar hash final"])
         with colB:
             if st.button("Corromper Nó", use_container_width=True):
                 df = nos[node_to_corrupt].copy()
