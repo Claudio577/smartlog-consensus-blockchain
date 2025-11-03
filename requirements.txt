@@ -1,4 +1,4 @@
 streamlit
-pandas
-google-cloud-firestore
 firebase-admin
+google-cloud-core
+pandas
