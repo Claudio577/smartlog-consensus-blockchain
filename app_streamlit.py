@@ -196,27 +196,26 @@ with tab_main:
             # Mantenha como False se quiser esconder o painel em rejeição
             st.session_state["mostrar_web3"] = True
 
-    # --------------------------------------------------------
-# VISUALIZAÇÃO WEB3 (ATIVADA POR BOTÃO)
+   # --------------------------------------------------------
+# VISUALIZAÇÃO WEB3 (ATIVADA SOMENTE POR BOTÃO)
 # --------------------------------------------------------
 if st.session_state.get("web3_evento_texto"):
+    # Inicializa o estado do botão se ainda não existir
     if "mostrar_web3" not in st.session_state:
         st.session_state["mostrar_web3"] = False
 
-    st.markdown("### Visualização Web3 (Simulada)")
+    # Botão principal
+    if st.button(
+        "🔗 Mostrar / Ocultar Visualização Web3",
+        key="botao_toggle_web3",
+        use_container_width=True
+    ):
+        st.session_state["mostrar_web3"] = not st.session_state["mostrar_web3"]
 
-    col_show = st.columns([1, 6])
-    with col_show[0]:
-        if st.button(
-            "🔗 Mostrar Visualização Web3",
-            key="botao_mostrar_web3",
-            use_container_width=True
-        ):
-            st.session_state["mostrar_web3"] = not st.session_state["mostrar_web3"]
-
-    # Exibe o painel SOMENTE se o botão estiver ativo
+    # Exibe o painel SOMENTE após o clique
     if st.session_state["mostrar_web3"]:
-        with st.expander("📊 Detalhes Web3 (Simulados)", expanded=True):
+        with st.container(border=True):
+            st.markdown("### Visualização Web3 (Simulada)")
             mostrar_demo_web3(
                 st.session_state["web3_evento_texto"],
                 st.session_state["web3_hash"]
