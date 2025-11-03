@@ -297,22 +297,23 @@ with tab_main:
         
         # --- Botão: Teste de Auditoria Manual (AGORA DINÂMICO) ---
         with col4:
-    if st.button("Enviar Log de Auditoria", key="botao_teste_auditoria", use_container_width=True):
-        try:
-            # Envia o log de auditoria (sem alterar sessão ou causar stop)
-            registrar_auditoria(audit_actor, "teste_envio_manual", audit_message)
-            # Armazena a mensagem no estado da sessão para persistir após rerun
-            st.session_state["ultimo_log_auditoria"] = f"{audit_actor} registrou: '{audit_message}'"
-        except Exception as e:
-            st.session_state["ultimo_log_auditoria"] = f"Erro ao registrar auditoria: {e}"
+           if st.button("Enviar Log de Auditoria", key="botao_teste_auditoria", use_container_width=True):
+              try:
+              # Envia o log de auditoria (sem alterar sessão ou causar stop)
+              registrar_auditoria(audit_actor, "teste_envio_manual", audit_message)
+              # Armazena a mensagem no estado da sessão para persistir após rerun
+              st.session_state["ultimo_log_auditoria"] = f"{audit_actor} registrou: '{audit_message}'"
+              except Exception as e:
+              st.session_state["ultimo_log_auditoria"] = f"Erro ao registrar auditoria: {e}"
 
-    # Exibe o resultado fora do bloco do botão (persiste na tela)
-    if "ultimo_log_auditoria" in st.session_state:
-        msg = st.session_state["ultimo_log_auditoria"]
-        if "Erro" in msg:
-            st.error(msg)
-        else:
-            st.success(f"Log de auditoria enviado: **{msg}**")
+         # Exibe o resultado fora do bloco do botão (persiste na tela)
+         if "ultimo_log_auditoria" in st.session_state:
+             msg = st.session_state["ultimo_log_auditoria"]
+             if "Erro" in msg:
+               st.error(msg)
+             else:
+               st.success(f"Log de auditoria enviado: **{msg}**")
+
 
 # ============================================================
 # ABA 2 — SIMULADOR DE FRAUDE / NÓ MALICIOSO
