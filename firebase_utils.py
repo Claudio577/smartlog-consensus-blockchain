@@ -78,3 +78,4 @@ def limpar_blockchain_firestore():
     except Exception as e:
         st.error(f"❌ Erro ao limpar Firestore: {e}")
 
+
