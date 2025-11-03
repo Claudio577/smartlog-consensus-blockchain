@@ -144,39 +144,73 @@ with tab_main:
         )
 
     # ===============================================
-    # Iniciar Simulação de Consenso (Execução)
-    # ===============================================
-    # Removido emoji do botão
-    if st.button("Iniciar Simulação de Consenso", key="botao_consenso_main", use_container_width=True):
-        
-        st.info(f"**Proposta:** {propositor} está propondo o bloco: **'{evento_texto}'**")
-        
-        # Usa o último hash da maioria para garantir integridade
-        hashes_finais = [df.iloc[-1]["hash_atual"] for df in nos.values()]
-        hash_anterior = max(set(hashes_finais), key=hashes_finais.count)
+# Iniciar Simulação de Consenso (Execução)
+# ===============================================
+if st.button("Iniciar Simulação de Consenso", key="botao_consenso_main", use_container_width=True):
+    
+    st.info(f"**Proposta:** {propositor} está propondo o bloco: **'{evento_texto}'**")
+    
+    hashes_finais = [df.iloc[-1]["hash_atual"] for df in nos.values()]
+    hash_anterior = max(set(hashes_finais), key=hashes_finais.count)
 
-        # Etapa 1: Proposta e votação
-        try:
-            proposta = sb.propor_bloco(propositor, evento_texto, hash_anterior)
-            proposta = sb.votar_proposta(proposta, nos, chaves)
-        except Exception as e:
-            st.error(f"Erro na fase de Proposta/Votação: {e}")
-            st.stop()
+    try:
+        proposta = sb.propor_bloco(propositor, evento_texto, hash_anterior)
+        proposta = sb.votar_proposta(proposta, nos, chaves)
+    except Exception as e:
+        st.error(f"Erro na fase de Proposta/Votação: {e}")
+        st.stop()
 
+    st.markdown("### Votação dos Nós (Assinaturas)")
+    col_votes = st.columns(len(nos))
+    for i, (no, assinatura) in enumerate(proposta["assinaturas"].items()):
+        with col_votes[i]:
+            if assinatura.startswith("Recusado"):
+                st.error(f"{no} recusou")
+            else:
+                st.success(f"{no} assinou")
+    
+    st.divider()
+    st.markdown("### Aplicação do Consenso")
+    st.write(f"Quorum necessário: **{quorum}** de {len(nos)} nós.")
 
-        # Etapa 2: Mostrar assinaturas
-        st.markdown("### Votação dos Nós (Assinaturas)")
-        
-        col_votes = st.columns(len(nos))
-        for i, (no, assinatura) in enumerate(proposta["assinaturas"].items()):
-            with col_votes[i]:
-                # Removidos emojis de sucesso/erro
-                if assinatura.startswith("Recusado"):
-                    st.error(f"{no} recusou")
-                else:
-                    st.success(f"{no} assinou")
-        
-        st.divider()
+    try:
+        sucesso = sb.aplicar_consenso(proposta, nos, quorum=quorum)
+    except Exception as e:
+        st.error(f"Erro ao aplicar consenso: {e}")
+        sucesso = False
+
+    if sucesso:
+        st.success("Consenso alcançado! O bloco foi adicionado em todos os nós.")
+        registrar_auditoria(
+            "Sistema",
+            "consenso_aprovado",
+            f"Bloco '{evento_texto}' aceito (quorum {quorum})"
+        )
+
+        # 🔹 Guarda os dados Web3 no estado (persistentes entre reruns)
+        st.session_state["web3_evento_texto"] = evento_texto
+        st.session_state["web3_hash"] = proposta["hash_bloco"]
+        st.session_state["mostrar_web3"] = True
+
+    else:
+        st.warning("Quorum insuficiente. O bloco foi rejeitado e não foi adicionado.")
+        registrar_auditoria(
+            "Sistema",
+            "consenso_rejeitado",
+            f"Bloco '{evento_texto}' rejeitado (quorum {quorum})"
+        )
+        st.session_state["mostrar_web3"] = False
+
+      # ===============================================
+      # ✅ Exibe o painel Web3 mesmo após outros cliques
+      # ===============================================
+      if st.session_state.get("mostrar_web3", False):
+        with st.expander("Visualização Web3 (Simulada)", expanded=True):
+            mostrar_demo_web3(
+                st.session_state["web3_evento_texto"],
+                st.session_state["web3_hash"]
+            )
+
 
         # ===============================================
         # Cálculo do Consenso e Aplicação
