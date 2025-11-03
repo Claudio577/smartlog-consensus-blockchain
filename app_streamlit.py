@@ -197,16 +197,31 @@ with tab_main:
             st.session_state["mostrar_web3"] = True
 
     # --------------------------------------------------------
-    # EXIBE O PAINEL WEB3 MESMO APÓS OUTROS CLIQUES
-    # --------------------------------------------------------
-    if st.session_state.get("mostrar_web3", False):
-        with st.expander("Visualização Web3 (Simulada)", expanded=True):
+# VISUALIZAÇÃO WEB3 (ATIVADA POR BOTÃO)
+# --------------------------------------------------------
+if st.session_state.get("web3_evento_texto"):
+    if "mostrar_web3" not in st.session_state:
+        st.session_state["mostrar_web3"] = False
+
+    st.markdown("### Visualização Web3 (Simulada)")
+
+    col_show = st.columns([1, 6])
+    with col_show[0]:
+        if st.button(
+            "🔗 Mostrar Visualização Web3",
+            key="botao_mostrar_web3",
+            use_container_width=True
+        ):
+            st.session_state["mostrar_web3"] = not st.session_state["mostrar_web3"]
+
+    # Exibe o painel SOMENTE se o botão estiver ativo
+    if st.session_state["mostrar_web3"]:
+        with st.expander("📊 Detalhes Web3 (Simulados)", expanded=True):
             mostrar_demo_web3(
                 st.session_state["web3_evento_texto"],
                 st.session_state["web3_hash"]
             )
 
-    st.divider()
 
     # --------------------------------------------------------
     # UTILITÁRIOS FIRESTORE E AUDITORIA
