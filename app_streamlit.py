@@ -180,6 +180,13 @@ with tab_main:
             except Exception as e:
                 st.error(f"Erro na fase de Proposta/Votação: {e}")
                 st.stop()
+            
+            # --- Adicionado para mostrar o encadeamento dos hashes ---
+            st.info(f"""
+                Hash Anterior (Base do Consenso): `{hash_anterior[-6:]}...`  
+                Hash do Bloco Proposto: `{proposta["hash_bloco"][-6:]}...`
+            """)
+            # -------------------------------------------------------
 
             st.markdown("##### Votação dos Nós (Assinaturas)")
             col_votes = st.columns(len(nos))
@@ -203,7 +210,10 @@ with tab_main:
                 sucesso = False
 
             if sucesso:
-                st.success("Consenso alcançado. O bloco foi adicionado em todos os nós.")
+                # --- Modificado para incluir os hashes no sucesso ---
+                novo_hash = proposta["hash_bloco"][-6:]
+                st.success(f"Consenso alcançado. O bloco foi adicionado em todos os nós. (Novo Hash: `{novo_hash}...`)")
+                # --------------------------------------------------
                 registrar_auditoria(
                     "Sistema",
                     "consenso_aprovado",
