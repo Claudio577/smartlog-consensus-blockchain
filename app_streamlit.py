@@ -54,6 +54,21 @@ except ImportError as e:
 st.set_page_config(page_title="SmartLog Blockchain", layout="wide")
 st.title("SmartLog Blockchain — Simulador de Consenso (PoA)")
 st.markdown("Simulador didático de consenso Proof-of-Authority (PoA) para redes privadas e logísticas.")
+# ============================================================
+# MODO DE OPERAÇÃO
+# ============================================================
+st.sidebar.header("⚙️ Configurações da Simulação")
+
+modo_operacao = st.sidebar.radio(
+    "Modo de operação:",
+    ["Simulado (local)", "Distribuído (rede)"],
+    index=0
+)
+
+st.sidebar.info(
+    "🧠 *Modo Simulado:* tudo roda localmente em um só Streamlit.\n\n"
+    "🌐 *Modo Distribuído:* cada nó será um servidor real conectado via rede."
+)
 
 # ============================================================
 # ESTADO INICIAL
