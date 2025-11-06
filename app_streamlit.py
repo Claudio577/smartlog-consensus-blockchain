@@ -119,7 +119,31 @@ if "nos" not in st.session_state:
 
 nos = st.session_state.nos
 chaves = st.session_state.chaves
+if "nos" not in st.session_state:
+    dados = {
+        "id_entrega": [1, 2, 3],
+        "source_center": ["Depósito_SP", "Depósito_SP", "Depósito_RJ"],
+        "destination_name": ["Centro_MG", "Centro_PR", "Centro_BA"],
+        "etapa": ["Saiu do depósito", "Em rota", "Chegou ao destino"],
+        "timestamp": [datetime.now()] * 3,
+        "risco": ["Baixo", "Médio", "Baixo"]
+    }
+    eventos_df = pd.DataFrame(dados)
+    blockchain_df = criar_blockchain_inicial(eventos_df)
+    nos = criar_nos(blockchain_df)
+    chaves = simular_chaves_privadas(nos)
 
+    st.session_state.blockchain_df = blockchain_df
+    st.session_state.nos = nos
+    st.session_state.chaves = chaves
+    st.session_state["mostrar_web3"] = False
+    st.session_state["web3_evento_texto"] = None
+    st.session_state["web3_hash"] = None
+    st.session_state["consenso_sucesso"] = False
+    st.session_state["df_auditoria_hash"] = None
+
+nos = st.session_state.nos
+chaves = st.session_state.chaves
 # ============================================================
 # INTERFACE EM ABAS
 # ============================================================
