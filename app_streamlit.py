@@ -48,27 +48,15 @@ except ImportError as e:
     def limpar_blockchain_firestore(): pass
     def mostrar_demo_web3(event, hash): st.markdown("Detalhes Web3 simulados aqui.")
 
+
 # ============================================================
 # CONFIGURAÇÕES INICIAIS
 # ============================================================
 st.set_page_config(page_title="SmartLog Blockchain", layout="wide")
 st.title("SmartLog Blockchain — Simulador de Consenso (PoA)")
 st.markdown("Simulador didático de consenso Proof-of-Authority (PoA) para redes privadas e logísticas.")
-# ============================================================
-# MODO DE OPERAÇÃO
-# ============================================================
-st.sidebar.header("⚙️ Configurações da Simulação")
 
-modo_operacao = st.sidebar.radio(
-    "Modo de operação:",
-    ["Simulado (local)", "Distribuído (rede)"],
-    index=0
-)
 
-st.sidebar.info(
-    "🧠 *Modo Simulado:* tudo roda localmente em um só Streamlit.\n\n"
-    "🌐 *Modo Distribuído:* cada nó será um servidor real conectado via rede."
-)
 # ============================================================
 # MODO DE OPERAÇÃO
 # ============================================================
@@ -91,9 +79,16 @@ if modo_operacao == "Simulado (local)":
 else:
     st.caption("Rodando em modo distribuído — conexão entre nós via rede.")
 
+
 # ============================================================
 # ESTADO INICIAL
 # ============================================================
+if "modo_operacao" not in st.session_state:
+    st.session_state.modo_operacao = modo_operacao
+else:
+    st.session_state.modo_operacao = modo_operacao
+
+
 if "nos" not in st.session_state:
     dados = {
         "id_entrega": [1, 2, 3],
@@ -104,9 +99,19 @@ if "nos" not in st.session_state:
         "risco": ["Baixo", "Médio", "Baixo"]
     }
     eventos_df = pd.DataFrame(dados)
-    blockchain_df = criar_blockchain_inicial(eventos_df)
-    nos = criar_nos(blockchain_df)
-    chaves = simular_chaves_privadas(nos)
+
+    # -------------------------------
+    # Definição conforme o modo
+    # -------------------------------
+    if st.session_state.modo_operacao == "Simulado (local)":
+        blockchain_df = criar_blockchain_inicial(eventos_df)
+        nos = criar_nos(blockchain_df)
+        chaves = simular_chaves_privadas(nos)
+    else:
+        # 🔹 Modo distribuído (a implementar)
+        blockchain_df = pd.DataFrame()
+        nos = {}
+        chaves = {}
 
     st.session_state.blockchain_df = blockchain_df
     st.session_state.nos = nos
@@ -119,41 +124,23 @@ if "nos" not in st.session_state:
 
 nos = st.session_state.nos
 chaves = st.session_state.chaves
-if "nos" not in st.session_state:
-    dados = {
-        "id_entrega": [1, 2, 3],
-        "source_center": ["Depósito_SP", "Depósito_SP", "Depósito_RJ"],
-        "destination_name": ["Centro_MG", "Centro_PR", "Centro_BA"],
-        "etapa": ["Saiu do depósito", "Em rota", "Chegou ao destino"],
-        "timestamp": [datetime.now()] * 3,
-        "risco": ["Baixo", "Médio", "Baixo"]
-    }
-    eventos_df = pd.DataFrame(dados)
-    blockchain_df = criar_blockchain_inicial(eventos_df)
-    nos = criar_nos(blockchain_df)
-    chaves = simular_chaves_privadas(nos)
 
-    st.session_state.blockchain_df = blockchain_df
-    st.session_state.nos = nos
-    st.session_state.chaves = chaves
-    st.session_state["mostrar_web3"] = False
-    st.session_state["web3_evento_texto"] = None
-    st.session_state["web3_hash"] = None
-    st.session_state["consenso_sucesso"] = False
-    st.session_state["df_auditoria_hash"] = None
 
-nos = st.session_state.nos
-chaves = st.session_state.chaves
 # ============================================================
 # INTERFACE EM ABAS
 # ============================================================
 tab_main, tab_fraude = st.tabs(["Consenso Principal", "Simulador de Fraude"])
+
 
 # ============================================================
 # ABA PRINCIPAL — CONSENSO
 # ============================================================
 with tab_main:
     st.header("Fluxo de Consenso Proof-of-Authority")
+
+    if not nos:
+        st.warning("⚠️ Nenhum nó disponível no modo distribuído (a implementar).")
+        st.stop()
 
     consenso_ok = validar_consenso(nos)
     if consenso_ok:
@@ -202,7 +189,6 @@ with tab_main:
                 st.error(f"Erro na proposta/votação: {e}")
                 st.stop()
 
-            votos_sim = sum(1 for a in proposta["assinaturas"].values() if not a.startswith("Recusado"))
             sucesso = sb.aplicar_consenso(proposta, nos, quorum=quorum)
 
             if sucesso:
@@ -255,85 +241,11 @@ with tab_main:
 
         st.divider()
         st.subheader("Adicionar Novo Bloco")
-        st.caption("Crie uma nova proposta de bloco e inicie outra rodada de consenso.")
         if st.button("Criar Nova Proposta de Bloco", use_container_width=True, key="novo_bloco_global"):
-            st.session_state["web3_evento_texto"] = None
-            st.session_state["web3_hash"] = None
-            st.session_state["mostrar_web3"] = False
-            st.session_state["consenso_sucesso"] = False
-            st.session_state["df_auditoria_hash"] = None
+            for key in ["web3_evento_texto", "web3_hash", "mostrar_web3", "consenso_sucesso", "df_auditoria_hash"]:
+                st.session_state[key] = None
             st.rerun()
 
-    # --------------------------------------------------------
-    # VISUALIZAÇÃO WEB3 (SOMENTE POR BOTÃO)
-    # --------------------------------------------------------
-    if st.session_state["web3_evento_texto"]:
-        st.divider()
-        if st.button("Mostrar / Ocultar Integração Web3", use_container_width=True):
-            st.session_state["mostrar_web3"] = not st.session_state["mostrar_web3"]
-            st.rerun()
-
-        if st.session_state["mostrar_web3"]:
-            with st.container(border=True):
-                mostrar_demo_web3(st.session_state["web3_evento_texto"],
-                                  st.session_state["web3_hash"])
-
-    # --------------------------------------------------------
-    # FIRESTORE E AUDITORIA MANUAL
-    # --------------------------------------------------------
-    st.divider()
-    st.subheader("Utilitários Firestore e Logs")
-
-    col_sync, col_audit = st.columns(2)
-
-    with col_sync:
-        with st.container(border=True):
-            st.markdown("##### Sincronização com Firestore")
-            col1, col2, col3 = st.columns(3)
-
-            with col1:
-                if st.button("Carregar da Nuvem", use_container_width=True):
-                    df = carregar_blockchain_firestore()
-                    if df is not None:
-                        st.session_state.blockchain_df = df
-                        nos["Node_A"] = df
-                        st.success("Blockchain carregada com sucesso.")
-                    else:
-                        st.warning("Nenhum dado encontrado.")
-
-            with col2:
-                if st.button("Salvar Blockchain", use_container_width=True):
-                    try:
-                        salvar_blockchain_firestore(nos["Node_A"])
-                        st.success("Blockchain salva na nuvem.")
-                    except Exception as e:
-                        st.error(f"Erro ao salvar: {e}")
-
-            with col3:
-                if st.button("Resetar Firestore e Sessão", use_container_width=True):
-                    try:
-                        limpar_blockchain_firestore()
-                        for k in list(st.session_state.keys()):
-                            del st.session_state[k]
-                        st.error("Sessão reiniciada. Recarregue a página.")
-                        st.stop()
-                    except Exception as e:
-                        st.error(f"Erro ao limpar: {e}")
-
-    with col_audit:
-        with st.container(border=True):
-            st.markdown("##### Log de Auditoria Manual")
-            col_a1, col_a2 = st.columns([1, 2])
-            with col_a1:
-                audit_actor = st.selectbox("Ator:", ["Usuário", "Sistema", "Nó de Validação"])
-            with col_a2:
-                audit_msg = st.text_input("Mensagem:", "Teste de log manual.")
-            if st.button("Registrar Log Manual", use_container_width=True):
-                try:
-                    registrar_auditoria(audit_actor, "log_manual", audit_msg)
-                    st.success("Log registrado no Firestore.")
-                except Exception as e:
-                    st.error(f"Erro ao registrar log: {e}")
 
 # ============================================================
 # ABA FRAUDE — ATAQUE E RECUPERAÇÃO
@@ -341,6 +253,10 @@ with tab_main:
 with tab_fraude:
     st.header("Simulação de Ataque e Recuperação de Nós")
     st.divider()
+
+    if not nos:
+        st.warning("⚠️ Nenhum nó disponível no modo distribuído (a implementar).")
+        st.stop()
 
     with st.container(border=True):
         st.subheader("1. Simular Ataque")
