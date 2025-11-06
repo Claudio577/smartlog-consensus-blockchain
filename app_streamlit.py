@@ -7,7 +7,7 @@ import pandas as pd
 from datetime import datetime
 import hashlib
 import uuid
-
+import requests
 # ------------------------------------------------------------
 # Importações internas
 # ------------------------------------------------------------
@@ -79,6 +79,14 @@ if modo_operacao == "Simulado (local)":
 else:
     st.caption("Rodando em modo distribuído — conexão entre nós via rede.")
 
+# ------------------------------------------------------------
+# Configuração dos nós remotos (modo distribuído)
+# ------------------------------------------------------------
+NOS_REMOTOS = {
+    "Node_A": "http://127.0.0.1:5000",
+    "Node_B": "http://127.0.0.1:5001",
+    "Node_C": "http://127.0.0.1:5002"
+}
 
 # ============================================================
 # ESTADO INICIAL
