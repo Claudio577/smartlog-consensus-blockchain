@@ -69,6 +69,27 @@ st.sidebar.info(
     "🧠 *Modo Simulado:* tudo roda localmente em um só Streamlit.\n\n"
     "🌐 *Modo Distribuído:* cada nó será um servidor real conectado via rede."
 )
+# ============================================================
+# MODO DE OPERAÇÃO
+# ============================================================
+st.sidebar.header("⚙️ Configurações da Simulação")
+
+modo_operacao = st.sidebar.radio(
+    "Modo de operação:",
+    ["Simulado (local)", "Distribuído (rede)"],
+    index=0
+)
+
+st.sidebar.info(
+    "🧠 *Modo Simulado:* tudo roda localmente em um só Streamlit.\n\n"
+    "🌐 *Modo Distribuído:* cada nó será um servidor real conectado via rede."
+)
+
+st.markdown(f"### 🧭 Modo atual: **{modo_operacao}**")
+if modo_operacao == "Simulado (local)":
+    st.caption("Rodando localmente — ideal para demonstração didática.")
+else:
+    st.caption("Rodando em modo distribuído — conexão entre nós via rede.")
 
 # ============================================================
 # ESTADO INICIAL
