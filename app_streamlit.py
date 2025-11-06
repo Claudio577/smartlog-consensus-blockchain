@@ -281,4 +281,5 @@ with tab_fraude:
                     if corrupt_type == "Alterar último bloco":
                         df.at[idx, "etapa"] += " (ALTERADO)"
                         conteudo = f"{df.at[idx,'id_entrega']}-{df.at[idx,'source_center']}-{df.at[idx,'destination_name']}-{df.at[idx,'etapa']}-{df.at[idx,'timestamp']}-{df.at[idx,'risco']}"
-                        df.at[idx, "hash_atual"] = gerar_ha]()
+                        df.at[idx, "hash_atual"] = gerar_hash(conteudo, df.at[idx, "hash_anterior"])
+
