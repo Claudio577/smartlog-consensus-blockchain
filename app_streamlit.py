@@ -232,68 +232,63 @@ with tab_main:
             st.error(f"Erro na proposta/votação: {e}")
             st.stop()
 
-    # ============================================================
+       # ============================================================
     # AUDITORIA E NOVO BLOCO
     # ============================================================
     if st.session_state.get("consenso_sucesso", False):
-    st.divider()
-    st.subheader("📘 Auditoria de Hashes (Antes ➜ Depois)")
-    st.caption("Comparação dos hashes dos nós antes e depois da adição do bloco.")
+        st.divider()
+        st.subheader("📘 Auditoria de Hashes (Antes ➜ Depois)")
+        st.caption("Comparação dos hashes dos nós antes e depois da adição do bloco.")
 
-    # ============================================================
-    # Montar DataFrame de comparação de hashes
-    # ============================================================
-    comparacao_hash = []
-    for nome, df in nos.items():
-        if len(df) >= 2 and "hash_atual" in df.columns:
-            hash_ant = df.iloc[-2]["hash_atual"]
-            hash_atu = df.iloc[-1]["hash_atual"]
-            mudou = hash_ant != hash_atu
-            comparacao_hash.append({
-                "Nó": nome,
-                "Hash Anterior": f"{hash_ant[:8]}...{hash_ant[-8:]}",
-                "Hash Atual": f"{hash_atu[:8]}...{hash_atu[-8:]}",
-                "Mudou?": "✅ Sim" if mudou else "❌ Não"
-            })
-        elif len(df) == 1:
-            hash_atu = df.iloc[-1]["hash_atual"]
-            comparacao_hash.append({
-                "Nó": nome,
-                "Hash Anterior": "—",
-                "Hash Atual": f"{hash_atu[:8]}...{hash_atu[-8:]}",
-                "Mudou?": "Novo bloco"
-            })
+        # ============================================================
+        # Montar DataFrame de comparação de hashes
+        # ============================================================
+        comparacao_hash = []
+        for nome, df in nos.items():
+            if len(df) >= 2 and "hash_atual" in df.columns:
+                hash_ant = df.iloc[-2]["hash_atual"]
+                hash_atu = df.iloc[-1]["hash_atual"]
+                mudou = hash_ant != hash_atu
+                comparacao_hash.append({
+                    "Nó": nome,
+                    "Hash Anterior": f"{hash_ant[:8]}...{hash_ant[-8:]}",
+                    "Hash Atual": f"{hash_atu[:8]}...{hash_atu[-8:]}",
+                    "Mudou?": "✅ Sim" if mudou else "❌ Não"
+                })
+            elif len(df) == 1:
+                hash_atu = df.iloc[-1]["hash_atual"]
+                comparacao_hash.append({
+                    "Nó": nome,
+                    "Hash Anterior": "—",
+                    "Hash Atual": f"{hash_atu[:8]}...{hash_atu[-8:]}",
+                    "Mudou?": "Novo bloco"
+                })
+            else:
+                comparacao_hash.append({
+                    "Nó": nome,
+                    "Hash Anterior": "—",
+                    "Hash Atual": "—",
+                    "Mudou?": "Sem dados"
+                })
+
+        if comparacao_hash:
+            df_comp = pd.DataFrame(comparacao_hash)
+
+            def color_diff(val):
+                if "Sim" in val:
+                    return "color:#d9534f"
+                if "Novo" in val:
+                    return "color:#0275d8"
+                if "Não" in val:
+                    return "color:#5cb85c"
+                return ""
+
+            st.dataframe(
+                df_comp.style.applymap(color_diff, subset=["Mudou?"]),
+                use_container_width=True
+            )
         else:
-            comparacao_hash.append({
-                "Nó": nome,
-                "Hash Anterior": "—",
-                "Hash Atual": "—",
-                "Mudou?": "Sem dados"
-            })
-
-    if comparacao_hash:
-        df_comp = pd.DataFrame(comparacao_hash)
-
-        def color_diff(val):
-            if "Sim" in val: return "color:#d9534f"
-            if "Novo" in val: return "color:#0275d8"
-            if "Não" in val: return "color:#5cb85c"
-            return ""
-
-        st.dataframe(
-            df_comp.style.applymap(color_diff, subset=["Mudou?"]),
-            use_container_width=True
-        )
-    else:
-        st.info("Sem dados de auditoria disponíveis.")
-
-    st.divider()
-    st.subheader("🧱 Adicionar Novo Bloco")
-    if st.button("Criar Nova Proposta de Bloco", use_container_width=True):
-        for key in ["web3_evento_texto", "web3_hash", "mostrar_web3", "consenso_sucesso", "df_auditoria_hash"]:
-            st.session_state[key] = None
-        st.rerun()
-
+            st.info("Sem dados de auditoria disponíveis.")
 
         st.divider()
         st.subheader("🧱 Adicionar Novo Bloco")
@@ -301,7 +296,6 @@ with tab_main:
             for key in ["web3_evento_texto", "web3_hash", "mostrar_web3", "consenso_sucesso", "df_auditoria_hash"]:
                 st.session_state[key] = None
             st.rerun()
-
 
 # ============================================================
 # VISUALIZAÇÃO WEB3
