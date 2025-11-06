@@ -110,15 +110,11 @@ if "nos" not in st.session_state:
     }
     eventos_df = pd.DataFrame(dados)
 
-    # -------------------------------
-    # Definição conforme o modo
-    # -------------------------------
     if st.session_state.modo_operacao == "Simulado (local)":
         blockchain_df = criar_blockchain_inicial(eventos_df)
         nos = criar_nos(blockchain_df)
         chaves = simular_chaves_privadas(nos)
     else:
-        # 🔹 Modo distribuído (não usa DataFrames locais)
         blockchain_df = pd.DataFrame()
         nos = {"Node_A": pd.DataFrame(), "Node_B": pd.DataFrame(), "Node_C": pd.DataFrame()}
         chaves = {}
@@ -169,19 +165,12 @@ tab_main, tab_fraude = st.tabs(["Consenso Principal", "Simulador de Fraude"])
 with tab_main:
     st.header("Fluxo de Consenso Proof-of-Authority")
 
-    if not nos:
-        st.warning("⚠️ Nenhum nó disponível no modo distribuído (a implementar).")
-        st.stop()
-
     consenso_ok = validar_consenso(nos)
     if consenso_ok:
         st.success("Sistema sincronizado e íntegro.")
     else:
         st.warning("Divergência detectada entre os nós.")
 
-    # --------------------------------------------------------
-    # STATUS INICIAL DOS NÓS
-    # --------------------------------------------------------
     with st.expander("Status da Rede e Hashes Finais (Antes da Proposta)", expanded=False):
         cols = st.columns(len(nos))
         for i, (nome, df) in enumerate(nos.items()):
@@ -198,45 +187,37 @@ with tab_main:
     st.divider()
     st.subheader("1. Proposta e Votação de Novo Bloco")
 
-    with st.container(border=True):
-        col1, col2 = st.columns([2, 1])
-        with col1:
-            propositor = st.selectbox("Nó propositor:", list(nos.keys()))
-        with col2:
-            quorum = st.slider("Quorum mínimo:", 1, len(nos), 2)
-            st.caption(f"Quorum necessário: {quorum}/{len(nos)}")
+    col1, col2 = st.columns([2, 1])
+    with col1:
+        propositor = st.selectbox("Nó propositor:", list(nos.keys()))
+    with col2:
+        quorum = st.slider("Quorum mínimo:", 1, len(nos), 2)
+        st.caption(f"Quorum necessário: {quorum}/{len(nos)}")
 
-        evento_texto = st.text_input("Descrição do evento:", "Entrega #104 — Saiu do depósito — SP → MG")
+    evento_texto = st.text_input("Descrição do evento:", "Entrega #104 — Saiu do depósito — SP → MG")
 
-        if st.button("Iniciar Simulação de Consenso", use_container_width=True):
-            st.session_state["consenso_sucesso"] = False
-            st.info(f"O nó {propositor} propôs o bloco: '{evento_texto}'")
+    if st.button("Iniciar Simulação de Consenso", use_container_width=True):
+        st.session_state["consenso_sucesso"] = False
+        st.info(f"O nó {propositor} propôs o bloco: '{evento_texto}'")
 
-            try:
-                if st.session_state.modo_operacao == "Simulado (local)":
-                    hashes_finais = [df.iloc[-1]["hash_atual"] for df in nos.values()]
-                    hash_anterior = max(set(hashes_finais), key=hashes_finais.count)
-                    proposta = sb.propor_bloco(propositor, evento_texto, hash_anterior)
-                    proposta = sb.votar_proposta(proposta, nos, chaves)
-                else:
-                    # -----------------------------
-                    # MODO DISTRIBUÍDO
-                    # -----------------------------
-                    hash_anterior = "GENESIS"
-                    st.info("🔗 Enviando proposta de bloco aos nós reais...")
-                    votos = propor_bloco_remoto(evento_texto, hash_anterior)
-                    proposta = {
-                        "propositor": propositor,
-                        "evento": evento_texto,
-                        "assinaturas": {k: v.get("assinatura", "erro") for k, v in votos.items()},
-                        "hash_bloco": max([v.get("hash_bloco", "") for v in votos.values()], default="GENESIS")
-                    }
+        try:
+            if st.session_state.modo_operacao == "Simulado (local)":
+                hashes_finais = [df.iloc[-1]["hash_atual"] for df in nos.values()]
+                hash_anterior = max(set(hashes_finais), key=hashes_finais.count)
+                proposta = sb.propor_bloco(propositor, evento_texto, hash_anterior)
+                proposta = sb.votar_proposta(proposta, nos, chaves)
+            else:
+                hash_anterior = "GENESIS"
+                st.info("🔗 Enviando proposta de bloco aos nós reais...")
+                votos = propor_bloco_remoto(evento_texto, hash_anterior)
+                proposta = {
+                    "propositor": propositor,
+                    "evento": evento_texto,
+                    "assinaturas": {k: v.get("assinatura", "erro") for k, v in votos.items()},
+                    "hash_bloco": max([v.get("hash_bloco", "") for v in votos.values()], default="GENESIS")
+                }
 
-            except Exception as e:
-                st.error(f"Erro na proposta/votação: {e}")
-                st.stop()
-
-            sucesso = True  # Para simplificar, assumimos que o consenso foi aplicado
+            sucesso = True
             if sucesso:
                 st.session_state["consenso_sucesso"] = True
                 st.session_state["ultimo_evento"] = evento_texto
@@ -246,14 +227,29 @@ with tab_main:
 
                 registrar_auditoria("Sistema", "consenso_aprovado",
                                     f"Bloco '{evento_texto}' aceito (quorum {quorum})")
-
-                st.session_state["web3_evento_texto"] = evento_texto
-                st.session_state["web3_hash"] = proposta["hash_bloco"]
-                st.session_state["mostrar_web3"] = False
             else:
                 st.warning("Quorum insuficiente. Bloco rejeitado.")
-                registrar_auditoria("Sistema", "consenso_rejeitado",
-                                    f"Bloco '{evento_texto}' rejeitado.")
+
+        except Exception as e:
+            st.error(f"Erro na proposta/votação: {e}")
+            st.stop()
+
+    # ============================================================
+    # AUDITORIA DE HASHES E NOVO BLOCO
+    # ============================================================
+    if st.session_state.get("consenso_sucesso", False):
+        st.divider()
+        st.subheader("Auditoria de Hashes (Antes ➜ Depois)")
+        st.caption("Comparação dos hashes dos nós antes e depois da adição do bloco.")
+        st.info("Auditoria simplificada no modo atual.")
+
+        st.divider()
+        st.subheader("Adicionar Novo Bloco")
+        if st.button("Criar Nova Proposta de Bloco", use_container_width=True):
+            for key in ["web3_evento_texto", "web3_hash", "mostrar_web3", "consenso_sucesso", "df_auditoria_hash"]:
+                st.session_state[key] = None
+            st.rerun()
+
 
 # ============================================================
 # ABA FRAUDE — ATAQUE E RECUPERAÇÃO
@@ -261,10 +257,6 @@ with tab_main:
 with tab_fraude:
     st.header("Simulação de Ataque e Recuperação de Nós")
     st.divider()
-
-    if not nos:
-        st.warning("⚠️ Nenhum nó disponível no modo distribuído (a implementar).")
-        st.stop()
 
     with st.container(border=True):
         st.subheader("1. Simular Ataque")
@@ -282,4 +274,31 @@ with tab_fraude:
                         df.at[idx, "etapa"] += " (ALTERADO)"
                         conteudo = f"{df.at[idx,'id_entrega']}-{df.at[idx,'source_center']}-{df.at[idx,'destination_name']}-{df.at[idx,'etapa']}-{df.at[idx,'timestamp']}-{df.at[idx,'risco']}"
                         df.at[idx, "hash_atual"] = gerar_hash(conteudo, df.at[idx, "hash_anterior"])
+                    else:
+                        df.at[idx, "hash_atual"] = "FRAUDE" + str(uuid.uuid4())[:58]
+                    nos[node_to_corrupt] = df
+                    st.error(f"Nó {node_to_corrupt} corrompido!")
+                else:
+                    st.warning("Nenhum bloco encontrado.")
 
+    st.divider()
+    with st.container(border=True):
+        st.subheader("2. Detecção e Recuperação")
+        colC, colD = st.columns(2)
+        with colC:
+            if st.button("Detectar divergência", use_container_width=True):
+                if validar_consenso(nos):
+                    st.success("Todos os nós estão íntegros.")
+                else:
+                    corrompidos = detectar_no_corrompido(nos)
+                    st.error(f"Nós divergentes: {', '.join(corrompidos)}")
+        with colD:
+            if st.button("Recuperar nós", use_container_width=True):
+                ultimos = {n: df.iloc[-1]["hash_atual"] for n, df in nos.items() if len(df) > 0}
+                if ultimos:
+                    freq = {h: list(ultimos.values()).count(h) for h in ultimos.values()}
+                    hash_ok = max(freq, key=freq.get)
+                    nos = recuperar_no(nos, hash_ok)
+                    st.success("Nós restaurados com sucesso.")
+                else:
+                    st.warning("Nenhum hash válido para comparar.")
