@@ -133,6 +133,22 @@ if "nos" not in st.session_state:
 nos = st.session_state.nos
 chaves = st.session_state.chaves
 
+def propor_bloco_remoto(evento_texto, hash_anterior):
+    votos = {}
+    for nome, url in NOS_REMOTOS.items():
+        try:
+            resposta = requests.post(
+                f"{url}/proposta",
+                json={"evento": evento_texto, "hash_anterior": hash_anterior},
+                timeout=5
+            )
+            if resposta.status_code == 200:
+                votos[nome] = resposta.json()
+            else:
+                votos[nome] = {"erro": f"Status {resposta.status_code}"}
+        except Exception as e:
+            votos[nome] = {"erro": str(e)}
+    return votos
 
 # ============================================================
 # INTERFACE EM ABAS
@@ -191,8 +207,19 @@ with tab_main:
             hash_anterior = max(set(hashes_finais), key=hashes_finais.count)
 
             try:
-                proposta = sb.propor_bloco(propositor, evento_texto, hash_anterior)
-                proposta = sb.votar_proposta(proposta, nos, chaves)
+                if st.session_state.modo_operacao == "Simulado (local)":
+    proposta = sb.propor_bloco(propositor, evento_texto, hash_anterior)
+    proposta = sb.votar_proposta(proposta, nos, chaves)
+else:
+    st.info("Enviando proposta de bloco aos nós da rede...")
+    votos = propor_bloco_remoto(evento_texto, hash_anterior)
+    proposta = {
+        "propositor": propositor,
+        "evento": evento_texto,
+        "assinaturas": {k: v.get("assinatura", "erro") for k, v in votos.items()},
+        "hash_bloco": max([v.get("hash_bloco", "") for v in votos.values()], default="GENESIS")
+    }
+
             except Exception as e:
                 st.error(f"Erro na proposta/votação: {e}")
                 st.stop()
