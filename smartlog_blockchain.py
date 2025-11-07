@@ -1,14 +1,15 @@
 # ===========================================================
 # 📦 smartlog_blockchain.py — Módulo Base do Simulador
 # ===========================================================
-# Este módulo contém as funções principais do simulador de
-# blockchain e consenso para rastreamento logístico inteligente.
+# Corrigido para manter o hash_anterior idêntico ao do painel
+# e garantir encadeamento perfeito entre blocos.
 # ===========================================================
 
 import pandas as pd
 import hashlib
 from datetime import datetime
 import copy
+import uuid
 
 # ===========================================================
 # 🔹 Funções de Hash e Blockchain
@@ -92,7 +93,6 @@ def recuperar_no(nos, hash_ok):
             fonte = df.copy()
             break
 
-    # ⚙️ Correção — checa explicitamente se fonte é None
     if fonte is None or fonte.empty:
         raise ValueError("Nenhum nó válido encontrado para restauração.")
 
@@ -104,7 +104,7 @@ def recuperar_no(nos, hash_ok):
 
 
 # ===========================================================
-# 🔹 Funções de Consenso (Assinatura / Quorum)
+# 🔹 Consenso e Propostas
 # ===========================================================
 
 def simular_chaves_privadas(nos):
@@ -118,9 +118,9 @@ def assinar_bloco(chave_privada, hash_bloco):
 
 
 def propor_bloco(nodo_nome, evento, hash_anterior):
-    """Cria proposta de novo bloco (não adiciona ainda)."""
-    conteudo = f"{evento}-{hash_anterior}"
-    hash_bloco = gerar_hash(conteudo)
+    """Cria proposta de novo bloco (com hash calculado e encadeado)."""
+    conteudo = f"{evento}-{datetime.now().isoformat()}"
+    hash_bloco = gerar_hash(conteudo, hash_anterior)
     return {
         "propositor": nodo_nome,
         "evento": evento,
@@ -139,30 +139,24 @@ def votar_proposta(proposta, nos, chaves_privadas):
     return proposta
 
 
-# outras funções acima...
-
-import hashlib
-
 def aplicar_consenso(proposta, nos, quorum=2):
-    """Aplica o consenso e adiciona o bloco se houver quorum suficiente."""
+    """Aplica o consenso e adiciona o bloco com o mesmo hash da proposta."""
     votos_validos = sum(1 for a in proposta["assinaturas"].values() if not a.startswith("Recusado"))
 
     if votos_validos >= quorum:
         for nome, df in nos.items():
-            # 🔹 Gera o hash do novo bloco
-            conteudo = f"{proposta['evento']}{df.iloc[-1]['hash_atual']}"
-            hash_atual = hashlib.sha256(conteudo.encode()).hexdigest()
-
             novo_bloco = {
                 "bloco_id": len(df) + 1,
-                "evento": proposta["evento"],
-                "hash_anterior": df.iloc[-1]["hash_atual"],
-                "hash_atual": hash_atual
+                "id_entrega": str(uuid.uuid4())[:8],
+                "source_center": "Desconhecido",
+                "destination_name": "Desconhecido",
+                "etapa": proposta["evento"],
+                "timestamp": datetime.now(),
+                "risco": "Baixo",
+                "hash_anterior": proposta["hash_anterior"],   # 🔗 idêntico ao painel
+                "hash_atual": proposta["hash_bloco"]          # ✅ mesmo hash da proposta
             }
-
-            df = df._append(novo_bloco, ignore_index=True)
-            nos[nome] = df
-
+            nos[nome] = pd.concat([df, pd.DataFrame([novo_bloco])], ignore_index=True)
         return True
     else:
         return False
