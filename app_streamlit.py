@@ -223,4 +223,5 @@ with tab_main:
             st.session_state["ultimo_hash"] = proposta["hash_bloco"]
             st.session_state["ultimo_evento"] = evento_texto
 
-            st.success(f"✅ Consenso alcançado! Novo bloco adicionado com hash: {proposta['hash_bloco'][:16]()_]()
+            st.success(f"✅ Consenso alcançado! Novo bloco adicionado com hash: {proposta['hash_bloco'][:16]}...")
+
