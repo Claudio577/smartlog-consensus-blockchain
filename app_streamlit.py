@@ -228,6 +228,20 @@ with tab_main:
             novo_hash = proposta["hash_bloco"][:16]
             st.success(f"✅ Consenso alcançado! Novo bloco adicionado com hash: {novo_hash}...")
 
+            # ============================================================
+            # 📈 Projeção do Hash Anterior e Hash Final (Visualização)
+            # ============================================================
+            st.markdown("### 🔍 Auditoria Visual do Consenso")
+            st.write("Comparação direta entre o hash anterior e o novo hash adicionado:")
+
+            st.dataframe(pd.DataFrame([
+                {
+                    "Hash Anterior (usado)": f"{hash_anterior[:12]}...{hash_anterior[-6:]}",
+                    "Hash Novo (calculado)": f"{proposta['hash_bloco'][:12]}...{proposta['hash_bloco'][-6:]}",
+                    "Ligação": "🔗 Ok" if hash_anterior != proposta["hash_bloco"] else "⚠️ Sem mudança"
+                }
+            ]), use_container_width=True)
+
             # 🔹 Revalida blockchain após consenso
             for nome, df in nos.items():
                 if not sb.validar_blockchain(df):
@@ -240,11 +254,11 @@ with tab_main:
             st.stop()
 
     # ============================================================
-    # 🔍 AUDITORIA DE HASHES
+    # 🔍 AUDITORIA DE HASHES (TABELA DOS NÓS)
     # ============================================================
     if st.session_state.get("consenso_sucesso", False):
         st.divider()
-        st.subheader("🔍 Auditoria de Hashes (Antes ➜ Depois)")
+        st.subheader("📊 Auditoria de Hashes (Antes ➜ Depois por Nó)")
 
         comparacao_hash = []
         for nome, df in nos.items():
