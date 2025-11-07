@@ -202,9 +202,11 @@ with tab_main:
         try:
             if st.session_state.modo_operacao == "Simulado (local)":
                 hashes_finais = [df.iloc[-1]["hash_atual"] for df in nos.values()]
-                hash_anterior = max(set(hashes_finais), key=hashes_finais.count)
+                hash_anterior = nos[propositor].iloc[-1]["hash_atual"]
                 proposta = sb.propor_bloco(propositor, evento_texto, hash_anterior)
                 proposta = sb.votar_proposta(proposta, nos, chaves)
+                sb.aplicar_consenso(proposta, nos, quorum)
+
             else:
                 hash_anterior = "GENESIS"
                 st.info("Enviando proposta de bloco aos nós reais...")
