@@ -150,7 +150,10 @@ def aplicar_consenso(proposta, nos, quorum=2):
 
     if votos_validos >= quorum:
         for nome, df in nos.items():
-            # Adiciona o novo bloco com hash sincronizado
+            # Usa exatamente o mesmo hash verde da proposta
+            hash_atual = proposta["hash_bloco"]
+            hash_anterior = proposta["hash_anterior"]
+
             novo_bloco = {
                 "bloco_id": len(df) + 1,
                 "id_entrega": str(uuid.uuid4())[:8],
@@ -159,13 +162,15 @@ def aplicar_consenso(proposta, nos, quorum=2):
                 "etapa": proposta["evento"],
                 "timestamp": datetime.now(),
                 "risco": "Baixo",
-                "hash_anterior": proposta["hash_anterior"],   # Mesmo hash anterior exibido
-                "hash_atual": proposta["hash_bloco"]          # Mesmo hash calculado (verde)
+                "hash_anterior": hash_anterior,
+                "hash_atual": hash_atual
             }
+
             nos[nome] = pd.concat([df, pd.DataFrame([novo_bloco])], ignore_index=True)
         return True
     else:
         return False
+
 
 # ===========================================================
 # Auditoria e Exportação
