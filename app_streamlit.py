@@ -207,7 +207,8 @@ with tab_main:
                 st.info(f"🔗 Hash anterior usado: `{hash_anterior}`")
 
                 proposta = sb.propor_bloco(propositor, evento_texto, hash_anterior)
-
+                # ✅ Aplica o consenso localmente e adiciona o novo bloco
+                sb.aplicar_consenso(proposta, nos, quorum)
             else:
                 hash_anterior = "GENESIS"
                 st.info("🌐 Enviando proposta aos nós Flask...")
