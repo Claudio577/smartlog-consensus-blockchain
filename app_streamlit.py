@@ -195,33 +195,37 @@ with tab_main:
     evento_texto = st.text_input("📝 Descrição do evento:", "Entrega #104 — Saiu do depósito — SP → MG")
 
     if st.button("🚀 Iniciar Simulação de Consenso", use_container_width=True):
-        try:
-            if modo_operacao == "Simulado (local)":
-                # 🔗 Captura o hash exato exibido no painel (último hash da maioria)
-                hashes_finais = [df.iloc[-1]["hash_atual"] for df in nos.values()]
-                hash_anterior = max(set(hashes_finais), key=hashes_finais.count)
+    try:
+        if modo_operacao == "Simulado (local)":
+            # 🔗 Captura o hash exato exibido no painel (último hash da maioria)
+            hashes_finais = [df.iloc[-1]["hash_atual"] for df in nos.values()]
+            hash_anterior = max(set(hashes_finais), key=hashes_finais.count)
 
-                # 🔍 Mostra hash usado como elo anterior
-                st.session_state["hash_utilizado"] = hash_anterior
-                st.info(f"🔗 Hash anterior usado: `{hash_anterior}`")
+            # 🔍 Mostra hash usado como elo anterior
+            st.session_state["hash_utilizado"] = hash_anterior
+            st.info(f"🔗 Hash anterior usado: `{hash_anterior}`")
 
-                # 🧩 Cria a proposta de bloco usando exatamente o mesmo hash
-                proposta = sb.propor_bloco(propositor, evento_texto, hash_anterior)
+            # 🧩 Cria a proposta de bloco usando exatamente o mesmo hash
+            proposta = sb.propor_bloco(propositor, evento_texto, hash_anterior)
 
-            else:
-                hash_anterior = "GENESIS"
-                st.info("🌐 Enviando proposta aos nós Flask...")
-                votos = propor_bloco_remoto(evento_texto, hash_anterior)
-                proposta = {
-                    "propositor": propositor,
-                    "evento": evento_texto,
-                    "hash_anterior": hash_anterior,
-                    "hash_bloco": max([v.get("hash_bloco", "") for v in votos.values()], default="GENESIS")
-                }
+        else:
+            hash_anterior = "GENESIS"
+            st.info("🌐 Enviando proposta aos nós Flask...")
+            votos = propor_bloco_remoto(evento_texto, hash_anterior)
+            proposta = {
+                "propositor": propositor,
+                "evento": evento_texto,
+                "hash_anterior": hash_anterior,
+                "hash_bloco": max([v.get("hash_bloco", "") for v in votos.values()], default="GENESIS")
+            }
 
-            st.session_state["consenso_sucesso"] = True
-            st.session_state["ultimo_hash"] = proposta["hash_bloco"]
-            st.session_state["ultimo_evento"] = evento_texto
+        # ✅ Novo hash exibido com segurança
+        novo_hash = proposta["hash_bloco"][:16]
+        st.success(f"✅ Consenso alcançado! Novo bloco adicionado com hash: {novo_hash}...")
 
-            st.success(f"✅ Consenso alcançado! Novo bloco adicionado com hash: {proposta['hash_bloco'][:16]}...")
+        registrar_auditoria("Sistema", "consenso_aprovado", f"Bloco '{evento_texto}' aceito (quorum {quorum})")
+
+    except Exception as e:
+        st.error(f"Erro durante consenso: {e}")
+        st.stop()
 
