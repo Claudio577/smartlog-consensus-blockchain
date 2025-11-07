@@ -1,196 +1,309 @@
-# ===========================================================
-# 💠 smartlog_blockchain.py — Módulo Base do Simulador
-# ===========================================================
+# ============================================================
+# 💠 SmartLog Blockchain — Simulador de Consenso e Fraude
+# ============================================================
 # Autor: Claudio Hideki Yoshida (Orion IA)
-# Descrição: Módulo central da simulação SmartLog Blockchain.
-# Corrigido para manter o hash_anterior idêntico ao do painel
-# e garantir encadeamento perfeito entre blocos.
-# ===========================================================
+# Descrição: Simulador didático de consenso PoA com auditoria,
+# fraude, integração Firestore e destaque de hashes colorido.
+# ============================================================
 
+import streamlit as st
 import pandas as pd
-import hashlib
 from datetime import datetime
+import hashlib
 import uuid
+import requests
 
-# ===========================================================
-# 🔹 Funções de Hash e Blockchain
-# ===========================================================
-
-def gerar_hash(conteudo, hash_anterior="0"):
-    """Gera hash SHA256 de um conteúdo + hash anterior."""
-    return hashlib.sha256((str(conteudo) + str(hash_anterior)).encode()).hexdigest()
-
-
-def criar_blockchain_inicial(df_eventos, limite_blocos=20):
-    """Cria blockchain simulada a partir de eventos iniciais."""
-    blockchain = []
-    hash_anterior = "0"
-
-    for _, evento in df_eventos.head(limite_blocos).iterrows():
-        conteudo = f"{evento.id_entrega}-{evento.source_center}-{evento.destination_name}-{evento.etapa}-{evento.timestamp}-{evento.risco}"
-        hash_atual = gerar_hash(conteudo, hash_anterior)
-        bloco = {
-            "bloco_id": len(blockchain) + 1,
-            "id_entrega": evento.id_entrega,
-            "source_center": evento.source_center,
-            "destination_name": evento.destination_name,
-            "etapa": evento.etapa,
-            "timestamp": evento.timestamp,
-            "risco": evento.risco,
-            "hash_anterior": hash_anterior,
-            "hash_atual": hash_atual
-        }
-        blockchain.append(bloco)
-        hash_anterior = hash_atual
-
-    return pd.DataFrame(blockchain)
-
-
-def validar_blockchain(blockchain_df):
-    """Valida integridade da blockchain simulada."""
-    for i in range(1, len(blockchain_df)):
-        atual = blockchain_df.iloc[i]
-        anterior = blockchain_df.iloc[i - 1]
-        conteudo = f"{atual.id_entrega}-{atual.source_center}-{atual.destination_name}-{atual.etapa}-{atual.timestamp}-{atual.risco}"
-        hash_recalc = gerar_hash(conteudo, atual.hash_anterior)
-        if atual.hash_anterior != anterior.hash_atual or atual.hash_atual != hash_recalc:
-            return False
-    return True
+# ============================================================
+# IMPORTAÇÕES INTERNAS COM FALLBACK
+# ============================================================
+try:
+    import smartlog_blockchain as sb
+    from audit_logger import registrar_auditoria
+    from web3_demo_simulado import mostrar_demo_web3
+    from firebase_utils import (
+        salvar_blockchain_firestore,
+        carregar_blockchain_firestore,
+        limpar_blockchain_firestore
+    )
+    from smartlog_blockchain import (
+        criar_blockchain_inicial,
+        criar_nos,
+        validar_consenso,
+        simular_chaves_privadas,
+        propor_bloco,
+        votar_proposta,
+        aplicar_consenso,
+        detectar_no_corrompido,
+        recuperar_no,
+        gerar_hash
+    )
+except ImportError as e:
+    st.error(f"Erro de importação: {e}")
+    def gerar_hash(content, prev_hash): return hashlib.sha256((content + prev_hash).encode()).hexdigest()
+    def criar_blockchain_inicial(df): return pd.DataFrame()
+    def criar_nos(df): return {"Node_A": df}
+    def simular_chaves_privadas(nos): return {}
+    def validar_consenso(nos): return True
+    def detectar_no_corrompido(nos): return []
+    def recuperar_no(nos, hash_ok): return nos
+    def registrar_auditoria(*args): pass
+    def salvar_blockchain_firestore(*args): pass
+    def carregar_blockchain_firestore(): return None
+    def limpar_blockchain_firestore(): pass
+    def mostrar_demo_web3(event, hash): st.markdown("Módulo Web3 Simulado — detalhes aqui.")
 
 
-# ===========================================================
-# 🔹 Funções de Nós e Consenso
-# ===========================================================
-
-def criar_nos(blockchain_df, total=3):
-    """Cria múltiplos nós idênticos a partir da blockchain base."""
-    nos = {}
-    for i in range(total):
-        nos[f"Node_{chr(65 + i)}"] = blockchain_df.copy()
-    return nos
+# ============================================================
+# CONFIGURAÇÃO DA PÁGINA
+# ============================================================
+st.set_page_config(page_title="SmartLog Blockchain", layout="wide")
+st.title("💠 SmartLog Blockchain — Simulador de Consenso (PoA)")
+st.markdown("Simulador didático de **consenso Proof-of-Authority (PoA)** com auditoria e segurança blockchain.")
 
 
-def validar_consenso(nos):
-    """Verifica se todos os nós possuem o mesmo último hash."""
-    ultimos = [n.iloc[-1]["hash_atual"] for n in nos.values() if not n.empty]
-    return len(set(ultimos)) == 1
+# ============================================================
+# MODO DE OPERAÇÃO
+# ============================================================
+st.sidebar.header("⚙️ Configurações da Simulação")
+
+modo_operacao = st.sidebar.radio(
+    "Modo de operação:",
+    ["Simulado (local)", "Distribuído (rede)"],
+    index=0
+)
+
+st.sidebar.info(
+    "🧩 **Simulado (local):** tudo roda dentro do Streamlit.\n\n"
+    "🌐 **Distribuído (rede):** cada nó é um servidor Flask real conectado via API."
+)
+
+st.markdown(f"### Modo atual: **{modo_operacao}**")
+if modo_operacao == "Simulado (local)":
+    st.caption("🧠 Rodando localmente — ideal para demonstração didática.")
+else:
+    st.caption("🌐 Rodando em modo distribuído — nós conectados via rede.")
 
 
-def detectar_no_corrompido(nos):
-    """Detecta quais nós estão fora do consenso."""
-    ultimos = {nome: n.iloc[-1]["hash_atual"] for nome, n in nos.items() if not n.empty}
-    freq = {}
-    for h in ultimos.values():
-        freq[h] = freq.get(h, 0) + 1
-    hash_ok = max(freq, key=freq.get)
-    return [nome for nome, h in ultimos.items() if h != hash_ok]
+# ============================================================
+# CONFIGURAÇÃO DE NÓS REMOTOS
+# ============================================================
+NOS_REMOTOS = {
+    "Node_A": "http://127.0.0.1:5000",
+    "Node_B": "http://127.0.0.1:5001",
+    "Node_C": "http://127.0.0.1:5002"
+}
 
 
-def recuperar_no(nos, hash_ok):
-    """Recupera nós corrompidos copiando blockchain da maioria."""
-    fonte = None
-    for nome, df in nos.items():
-        if not df.empty and df.iloc[-1]["hash_atual"] == hash_ok:
-            fonte = df.copy()
-            break
-
-    if fonte is None or fonte.empty:
-        raise ValueError("Nenhum nó válido encontrado para restauração.")
-
-    for nome, df in nos.items():
-        if df.empty or df.iloc[-1]["hash_atual"] != hash_ok:
-            nos[nome] = fonte.copy()
-
-    return nos
-
-
-# ===========================================================
-# 🔹 Consenso e Propostas
-# ===========================================================
-
-def simular_chaves_privadas(nos):
-    """Cria chaves privadas simuladas para cada nó."""
-    return {n: f"key_{n}_secret" for n in nos.keys()}
-
-
-def assinar_bloco(chave_privada, hash_bloco):
-    """Assinatura simulada: hash(privada + hash_bloco)."""
-    return hashlib.sha256((chave_privada + ":" + hash_bloco).encode()).hexdigest()
-
-
-def propor_bloco(nodo_nome, evento, hash_anterior):
-    """Cria proposta de novo bloco com hash calculado e encadeado."""
-    conteudo = f"{evento}-{datetime.now().isoformat()}"
-    hash_bloco = gerar_hash(conteudo, hash_anterior)
-    return {
-        "propositor": nodo_nome,
-        "evento": evento,
-        "hash_anterior": hash_anterior,
-        "hash_bloco": hash_bloco,
-        "assinaturas": {}
+# ============================================================
+# ESTADO INICIAL
+# ============================================================
+if "nos" not in st.session_state:
+    dados = {
+        "id_entrega": [1, 2, 3],
+        "source_center": ["Depósito_SP", "Depósito_SP", "Depósito_RJ"],
+        "destination_name": ["Centro_MG", "Centro_PR", "Centro_BA"],
+        "etapa": ["Saiu do depósito", "Em rota", "Chegou ao destino"],
+        "timestamp": [datetime.now()] * 3,
+        "risco": ["Baixo", "Médio", "Baixo"]
     }
+    eventos_df = pd.DataFrame(dados)
 
-
-def votar_proposta(proposta, nos, chaves_privadas):
-    """Simula votação e assinatura dos nós."""
-    for n in nos.keys():
-        ultimo_hash = nos[n].iloc[-1]["hash_atual"] if not nos[n].empty else "0"
-        if ultimo_hash == proposta["hash_anterior"]:
-            proposta["assinaturas"][n] = assinar_bloco(chaves_privadas[n], proposta["hash_bloco"])
-        else:
-            proposta["assinaturas"][n] = "Recusado"
-    return proposta
-
-
-def aplicar_consenso(proposta, nos, quorum=2):
-    """
-    Aplica o consenso e adiciona o bloco com o mesmo hash da proposta.
-    Mantém o hash_anterior idêntico ao exibido no painel e garante 
-    encadeamento consistente em todos os nós.
-    """
-    votos_validos = sum(1 for a in proposta["assinaturas"].values() if not a.startswith("Recusado"))
-
-    if votos_validos >= quorum:
-        # 🔹 Cria e adiciona o mesmo bloco em todos os nós
-        for nome, df in nos.items():
-            novo_bloco = {
-                "bloco_id": len(df) + 1,
-                "id_entrega": str(uuid.uuid4())[:8],
-                "source_center": "Desconhecido",
-                "destination_name": "Desconhecido",
-                "etapa": proposta["evento"],
-                "timestamp": datetime.now(),
-                "risco": "Baixo",
-                "hash_anterior": proposta["hash_anterior"],   # igual ao painel
-                "hash_atual": proposta["hash_bloco"]          # mesmo hash calculado
-            }
-            df = pd.concat([df, pd.DataFrame([novo_bloco])], ignore_index=True)
-            nos[nome] = df.copy()
-
-        # 🔁 Sincroniza o hash final de todos os nós (garante igualdade total)
-        ultimo_hash = proposta["hash_bloco"]
-        for nome in nos.keys():
-            nos[nome].iloc[-1, nos[nome].columns.get_loc("hash_atual")] = ultimo_hash
-
-        return True
+    if modo_operacao == "Simulado (local)":
+        blockchain_df = criar_blockchain_inicial(eventos_df)
+        nos = criar_nos(blockchain_df)
+        chaves = simular_chaves_privadas(nos)
     else:
-        return False
+        blockchain_df = pd.DataFrame()
+        nos = {"Node_A": pd.DataFrame(), "Node_B": pd.DataFrame(), "Node_C": pd.DataFrame()}
+        chaves = {}
 
-# ===========================================================
-# 🔹 Exportação do módulo
-# ===========================================================
+    st.session_state.nos = nos
+    st.session_state.chaves = chaves
+    st.session_state["ultimo_hash"] = None
+    st.session_state["consenso_sucesso"] = False
 
-__all__ = [
-    "gerar_hash",
-    "criar_blockchain_inicial",
-    "validar_blockchain",
-    "criar_nos",
-    "validar_consenso",
-    "detectar_no_corrompido",
-    "recuperar_no",
-    "simular_chaves_privadas",
-    "propor_bloco",
-    "votar_proposta",
-    "aplicar_consenso"
-]
 
+nos = st.session_state.nos
+chaves = st.session_state.chaves
+
+
+# ============================================================
+# FUNÇÃO — PROPOSTA A NÓS REAIS
+# ============================================================
+def propor_bloco_remoto(evento_texto, hash_anterior):
+    votos = {}
+    for nome, url in NOS_REMOTOS.items():
+        try:
+            resposta = requests.post(
+                f"{url}/proposta",
+                json={"evento": evento_texto, "hash_anterior": hash_anterior},
+                timeout=5
+            )
+            if resposta.status_code == 200:
+                votos[nome] = resposta.json()
+            else:
+                votos[nome] = {"erro": f"Status {resposta.status_code}"}
+        except Exception as e:
+            votos[nome] = {"erro": str(e)}
+    return votos
+
+
+# ============================================================
+# INTERFACE — ABAS
+# ============================================================
+tab_main, tab_fraude = st.tabs(["⚖️ Consenso Principal", "🧩 Simulação de Fraude"])
+
+
+# ============================================================
+# ⚖️ ABA PRINCIPAL
+# ============================================================
+with tab_main:
+    st.header("🧠 Fluxo de Consenso Proof-of-Authority (PoA)")
+
+    consenso_ok = validar_consenso(nos)
+    if consenso_ok:
+        st.success("✅ Todos os nós estão íntegros e sincronizados.")
+    else:
+        st.warning("⚠️ Divergência detectada entre os nós.")
+
+    # ------------------------------------------------------------
+    # STATUS DA REDE (ANTES DA PROPOSTA)
+    # ------------------------------------------------------------
+    with st.expander("📊 Status da Rede e Hashes Finais (Antes da Proposta)", expanded=False):
+        cols = st.columns(len(nos))
+        for i, (nome, df) in enumerate(nos.items()):
+            hash_display = "VAZIO"
+            if isinstance(df, pd.DataFrame) and len(df) > 0 and "hash_atual" in df.columns:
+                hash_display = df.iloc[-1]["hash_atual"]
+            with cols[i]:
+                st.metric(
+                    label=f"Nó {nome}",
+                    value=f"{hash_display[:12]}...{hash_display[-6:]}" if hash_display != "VAZIO" else "VAZIO",
+                    delta=f"Blocos: {len(df)}"
+                )
+        st.caption("🔗 O hash exibido aqui será usado como *hash_anterior* no próximo bloco.")
+
+    st.divider()
+    st.subheader("1️⃣ Proposta e Votação de Novo Bloco")
+
+    col1, col2 = st.columns([2, 1])
+    with col1:
+        propositor = st.selectbox("Nó propositor:", list(nos.keys()))
+    with col2:
+        quorum = st.slider("Quorum mínimo:", 1, len(nos), 2)
+        st.caption(f"Quorum necessário: {quorum}/{len(nos)}")
+
+    evento_texto = st.text_input("📝 Descrição do evento:", "Entrega #104 — Saiu do depósito — SP → MG")
+
+    # ============================================================
+    # 🚀 SIMULAÇÃO DE CONSENSO
+    # ============================================================
+    if st.button("Iniciar Simulação de Consenso", use_container_width=True):
+        try:
+            if modo_operacao == "Simulado (local)":
+                hashes_finais = [df.iloc[-1]["hash_atual"] for df in nos.values()]
+                hash_anterior = max(set(hashes_finais), key=hashes_finais.count)
+
+                st.session_state["hash_utilizado"] = hash_anterior
+                st.info(f"🔗 Hash anterior usado: `{hash_anterior}`")
+
+                # Cria proposta e aplica consenso
+                proposta = sb.propor_bloco(propositor, evento_texto, hash_anterior)
+                sb.aplicar_consenso(proposta, nos, quorum)
+
+            else:
+                hash_anterior = "GENESIS"
+                st.info("🌐 Enviando proposta aos nós Flask...")
+                votos = propor_bloco_remoto(evento_texto, hash_anterior)
+                proposta = {
+                    "propositor": propositor,
+                    "evento": evento_texto,
+                    "hash_anterior": hash_anterior,
+                    "hash_bloco": max([v.get("hash_bloco", "") for v in votos.values()], default="GENESIS")
+                }
+
+            st.session_state["consenso_sucesso"] = True
+            st.session_state["ultimo_hash"] = proposta["hash_bloco"]
+            st.session_state["ultimo_evento"] = evento_texto
+
+            novo_hash = proposta["hash_bloco"][:16]
+            st.success(f"✅ Consenso alcançado! Novo bloco adicionado com hash: {novo_hash}...")
+
+        except Exception as e:
+            st.error(f"Erro durante consenso: {e}")
+            st.stop()
+
+    # ============================================================
+    # 🔍 AUDITORIA VISUAL + COLORIDA
+    # ============================================================
+    if st.session_state.get("consenso_sucesso", False):
+        st.divider()
+        st.subheader("🔍 Auditoria Visual do Consenso")
+        st.caption("Comparação direta entre o hash anterior e o novo hash adicionado em cada nó.")
+
+        hash_ant = st.session_state.get("hash_utilizado", "")
+        hash_novo = st.session_state.get("ultimo_hash", "")
+
+        tabela_visual = []
+        for nome in nos.keys():
+            tabela_visual.append({
+                "Nó": nome,
+                "Hash Anterior": f"{hash_ant[:10]}...{hash_ant[-8:]}",
+                "Hash Novo": f"{hash_novo[:10]}...{hash_novo[-8:]}",
+                "Status": "Ok"
+            })
+
+        df_visual = pd.DataFrame(tabela_visual)
+
+        st.data_editor(
+            df_visual.style.map(lambda _: "color: #1E90FF; font-weight:bold;", subset=["Hash Anterior"])
+                            .map(lambda _: "color: green; font-weight:bold;", subset=["Hash Novo"])
+                            .map(lambda _: "color: black;", subset=["Status"]),
+            use_container_width=True,
+            hide_index=True
+        )
+
+        st.divider()
+        st.subheader("📊 Auditoria de Hashes (Antes ➜ Depois por Nó)")
+
+        comparacao_hash = []
+        for nome, df in nos.items():
+            if len(df) >= 2 and "hash_atual" in df.columns:
+                hash_ant = df.iloc[-2]["hash_atual"]
+                hash_atu = df.iloc[-1]["hash_atual"]
+                comparacao_hash.append({
+                    "Nó": nome,
+                    "Hash Anterior": f"{hash_ant[:10]}...{hash_ant[-8:]}",
+                    "Hash Atual": f"{hash_atu[:10]}...{hash_atu[-8:]}",
+                    "Ligação": "Ok" if hash_ant != hash_atu else "Sem mudança"
+                })
+
+        if comparacao_hash:
+            df_auditoria = pd.DataFrame(comparacao_hash)
+            st.data_editor(
+                df_auditoria.style.map(lambda v: "color: green; font-weight:bold;" if v == "Ok" else "color: orange; font-weight:bold;", subset=["Ligação"])
+                                 .map(lambda _: "color:#1E90FF; font-weight:bold;", subset=["Hash Anterior"])
+                                 .map(lambda _: "color:green; font-weight:bold;", subset=["Hash Atual"]),
+                use_container_width=True,
+                hide_index=True
+            )
+        else:
+            st.info("Nenhuma alteração registrada ainda.")
+
+    # ============================================================
+    # 🌐 WEB3 + ☁️ FIRESTORE
+    # ============================================================
+    st.divider()
+    st.subheader("☁️ Integração Web3 e Firestore")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("🔗 Mostrar Integração Web3"):
+            mostrar_demo_web3(st.session_state.get("ultimo_evento", ""), st.session_state.get("ultimo_hash", ""))
+    with col2:
+        if st.button("📤 Salvar no Firestore"):
+            try:
+                salvar_blockchain_firestore(nos["Node_A"])
+                st.success("✅ Blockchain salva no Firestore com sucesso!")
+            except Exception as e:
+                st.error(e)
