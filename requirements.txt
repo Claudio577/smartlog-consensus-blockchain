@@ -1,4 +1,5 @@
 streamlit
-firebase-admin
-google-cloud-core
 pandas
+requests
+graphviz
+firebase-admin
