@@ -8,6 +8,9 @@ from datetime import datetime
 import hashlib
 import uuid
 import requests
+import os
+import json
+import graphviz
 
 # ------------------------------------------------------------
 # Importações internas (com fallback)
@@ -150,6 +153,70 @@ def propor_bloco_remoto(evento_texto, hash_anterior):
         except Exception as e:
             votos[nome] = {"erro": str(e)}
     return votos
+# ============================================================
+# 🔍 VISUALIZAÇÃO DAS BLOCKCHAINS DISTRIBUÍDAS
+# ============================================================
+def exibir_blockchains_distribuidas():
+    """Exibe os blocos replicados em cada nó Flask e um gráfico de hashes."""
+    st.divider()
+    st.subheader("📦 Ledger Distribuído — Visualização dos Nós Flask")
+
+    cols = st.columns(len(NOS_REMOTOS))
+    for i, (nome, url) in enumerate(NOS_REMOTOS.items()):
+        with cols[i]:
+            st.markdown(f"### 🖥️ {nome}")
+            try:
+                # Status do nó
+                resp = requests.get(f"{url}/status", timeout=3)
+                status = resp.json()
+                st.caption(f"Último hash: `{status['ultimo_hash'][:12]}...` | Blocos: {status['tamanho']}")
+
+                # Carregar arquivo local (ledger salvo pelo Flask)
+                file_path = f"blockchain_{nome}.json"
+                if os.path.exists(file_path):
+                    with open(file_path, "r") as f:
+                        data = json.load(f)
+                    if data:
+                        df = pd.DataFrame(data)
+                        df_show = df[["index", "evento", "hash_atual", "validador", "timestamp"]]
+                        st.dataframe(df_show, use_container_width=True, hide_index=True)
+                    else:
+                        st.info("Sem blocos registrados.")
+                else:
+                    st.info("Ledger local ainda não criado.")
+
+            except Exception as e:
+                st.error(f"Falha ao conectar com {nome}: {e}")
+
+    # ============================================================
+    # 🔗 Gráfico da cadeia de hashes (Graphviz)
+    # ============================================================
+    try:
+        st.divider()
+        st.subheader("🔗 Estrutura da Cadeia de Hashes")
+
+        dot = graphviz.Digraph()
+        dot.attr(rankdir='LR')
+
+        for nome in NOS_REMOTOS.keys():
+            file_path = f"blockchain_{nome}.json"
+            if os.path.exists(file_path):
+                with open(file_path, "r") as f:
+                    blocos = json.load(f)
+                    with dot.subgraph(name=f"cluster_{nome}") as c:
+                        c.attr(label=nome)
+                        for bloco in blocos:
+                            node_id = f"{nome}_{bloco['index']}"
+                            label = f"{bloco['index']} | {bloco['evento']}\\n{bloco['hash_atual'][:8]}..."
+                            c.node(node_id, label, shape="box", style="rounded,filled", color="lightblue")
+                        # conectar blocos
+                        for i in range(1, len(blocos)):
+                            c.edge(f"{nome}_{blocos[i-1]['index']}", f"{nome}_{blocos[i]['index']}", color="gray")
+
+        st.graphviz_chart(dot, use_container_width=True)
+
+    except Exception as e:
+        st.warning(f"Não foi possível gerar gráfico: {e}")
 
 
 # ============================================================
@@ -224,6 +291,11 @@ with tab_main:
 
                 st.success(f"Consenso alcançado! Novo bloco adicionado. Hash: {proposta['hash_bloco'][:16]}...")
                 registrar_auditoria("Sistema", "consenso_aprovado", f"Bloco '{evento_texto}' aceito (quorum {quorum})")
+         # 🧩 Exibir as blockchains replicadas e o gráfico
+            if st.session_state.modo_operacao == "Distribuído (rede)":
+            st.info("Visualizando ledger distribuído dos nós Flask...")
+            exibir_blockchains_distribuidas()
+
             else:
                 st.warning("Quorum insuficiente. Bloco rejeitado.")
 
