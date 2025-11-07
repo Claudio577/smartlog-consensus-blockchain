@@ -1,5 +1,8 @@
 # ============================================================
-# SmartLog Blockchain — Simulador de Consenso e Fraude
+# 💠 SmartLog Blockchain — Simulador de Consenso e Fraude
+# ============================================================
+# Autor: Claudio Hideki Yoshida (Orion IA)
+# Descrição: Simulador didático de consenso PoA com auditoria, fraude e integração Firestore.
 # ============================================================
 
 import streamlit as st
@@ -9,9 +12,9 @@ import hashlib
 import uuid
 import requests
 
-# ------------------------------------------------------------
-# Importações internas (com fallback)
-# ------------------------------------------------------------
+# ============================================================
+# IMPORTAÇÕES INTERNAS COM FALLBACK
+# ============================================================
 try:
     import smartlog_blockchain as sb
     from audit_logger import registrar_auditoria
@@ -50,11 +53,11 @@ except ImportError as e:
 
 
 # ============================================================
-# CONFIGURAÇÕES INICIAIS
+# CONFIGURAÇÃO DA PÁGINA
 # ============================================================
 st.set_page_config(page_title="SmartLog Blockchain", layout="wide")
 st.title("💠 SmartLog Blockchain — Simulador de Consenso (PoA)")
-st.markdown("Simulador didático de **consenso Proof-of-Authority (PoA)** para redes privadas e logísticas.")
+st.markdown("Simulador didático de **consenso Proof-of-Authority (PoA)** com auditoria e segurança blockchain.")
 
 
 # ============================================================
@@ -69,19 +72,20 @@ modo_operacao = st.sidebar.radio(
 )
 
 st.sidebar.info(
-    "**Modo Simulado:** roda tudo localmente dentro do Streamlit.\n\n"
-    "**Modo Distribuído:** cada nó será um servidor Flask real conectado via rede."
+    "🧩 **Simulado (local):** tudo roda dentro do Streamlit.\n\n"
+    "🌐 **Distribuído (rede):** cada nó é um servidor Flask real conectado via API."
 )
 
 st.markdown(f"### Modo atual: **{modo_operacao}**")
 if modo_operacao == "Simulado (local)":
-    st.caption("Rodando localmente — ideal para demonstração didática.")
+    st.caption("🧠 Rodando localmente — ideal para demonstração didática.")
 else:
-    st.caption("Rodando em modo distribuído — conexão entre nós via rede.")
+    st.caption("🌐 Rodando em modo distribuído — nós conectados via rede.")
 
-# ------------------------------------------------------------
-# Configuração dos nós remotos (modo distribuído)
-# ------------------------------------------------------------
+
+# ============================================================
+# CONFIGURAÇÃO DE NÓS REMOTOS
+# ============================================================
 NOS_REMOTOS = {
     "Node_A": "http://127.0.0.1:5000",
     "Node_B": "http://127.0.0.1:5001",
@@ -92,11 +96,6 @@ NOS_REMOTOS = {
 # ============================================================
 # ESTADO INICIAL
 # ============================================================
-if "modo_operacao" not in st.session_state:
-    st.session_state.modo_operacao = modo_operacao
-else:
-    st.session_state.modo_operacao = modo_operacao
-
 if "nos" not in st.session_state:
     dados = {
         "id_entrega": [1, 2, 3],
@@ -108,7 +107,7 @@ if "nos" not in st.session_state:
     }
     eventos_df = pd.DataFrame(dados)
 
-    if st.session_state.modo_operacao == "Simulado (local)":
+    if modo_operacao == "Simulado (local)":
         blockchain_df = criar_blockchain_inicial(eventos_df)
         nos = criar_nos(blockchain_df)
         chaves = simular_chaves_privadas(nos)
@@ -117,21 +116,18 @@ if "nos" not in st.session_state:
         nos = {"Node_A": pd.DataFrame(), "Node_B": pd.DataFrame(), "Node_C": pd.DataFrame()}
         chaves = {}
 
-    st.session_state.blockchain_df = blockchain_df
     st.session_state.nos = nos
     st.session_state.chaves = chaves
-    st.session_state["mostrar_web3"] = False
-    st.session_state["web3_evento_texto"] = None
-    st.session_state["web3_hash"] = None
+    st.session_state["ultimo_hash"] = None
     st.session_state["consenso_sucesso"] = False
-    st.session_state["df_auditoria_hash"] = None
+
 
 nos = st.session_state.nos
 chaves = st.session_state.chaves
 
 
 # ============================================================
-# FUNÇÃO PARA COMUNICAR COM NÓS REAIS
+# FUNÇÃO — PROPOSTA A NÓS REAIS
 # ============================================================
 def propor_bloco_remoto(evento_texto, hash_anterior):
     votos = {}
@@ -152,13 +148,13 @@ def propor_bloco_remoto(evento_texto, hash_anterior):
 
 
 # ============================================================
-# INTERFACE EM ABAS
+# INTERFACE — ABAS
 # ============================================================
-tab_main, tab_fraude = st.tabs(["⚖️ Consenso Principal", "🧩 Simulador de Fraude"])
+tab_main, tab_fraude = st.tabs(["⚖️ Consenso Principal", "🧩 Simulação de Fraude"])
 
 
 # ============================================================
-# ABA PRINCIPAL — CONSENSO
+# ⚖️ ABA PRINCIPAL
 # ============================================================
 with tab_main:
     st.header("🧠 Fluxo de Consenso Proof-of-Authority (PoA)")
@@ -169,6 +165,9 @@ with tab_main:
     else:
         st.warning("⚠️ Divergência detectada entre os nós.")
 
+    # ------------------------------------------------------------
+    # STATUS DA REDE (ANTES DA PROPOSTA)
+    # ------------------------------------------------------------
     with st.expander("📊 Status da Rede e Hashes Finais (Antes da Proposta)", expanded=False):
         cols = st.columns(len(nos))
         for i, (nome, df) in enumerate(nos.items()):
@@ -181,6 +180,7 @@ with tab_main:
                     value=f"{hash_display[:12]}...{hash_display[-6:]}" if hash_display != "VAZIO" else "VAZIO",
                     delta=f"Blocos: {len(df)}"
                 )
+        st.caption("🔗 O hash exibido aqui será usado como *hash_anterior* no próximo bloco.")
 
     st.divider()
     st.subheader("1️⃣ Proposta e Votação de Novo Bloco")
@@ -192,34 +192,31 @@ with tab_main:
         quorum = st.slider("Quorum mínimo:", 1, len(nos), 2)
         st.caption(f"Quorum necessário: {quorum}/{len(nos)}")
 
-    evento_texto = st.text_input("Descrição do evento:", "Entrega #104 — Saiu do depósito — SP → MG")
+    evento_texto = st.text_input("📝 Descrição do evento:", "Entrega #104 — Saiu do depósito — SP → MG")
 
     if st.button("🚀 Iniciar Simulação de Consenso", use_container_width=True):
-        st.session_state["consenso_sucesso"] = False
-        st.info(f"O nó {propositor} propôs o bloco: '{evento_texto}'")
-
         try:
-            if st.session_state.modo_operacao == "Simulado (local)":
+            if modo_operacao == "Simulado (local)":
                 hashes_finais = [df.iloc[-1]["hash_atual"] for df in nos.values()]
                 hash_anterior = max(set(hashes_finais), key=hashes_finais.count)
                 proposta = sb.propor_bloco(propositor, evento_texto, hash_anterior)
                 proposta = sb.votar_proposta(proposta, nos, chaves)
             else:
                 hash_anterior = "GENESIS"
-                st.info("🌐 Enviando proposta aos nós reais (Flask)...")
+                st.info("🌐 Enviando proposta aos nós Flask...")
                 votos = propor_bloco_remoto(evento_texto, hash_anterior)
                 proposta = {
                     "propositor": propositor,
                     "evento": evento_texto,
-                    "assinaturas": {k: v.get("assinatura", "erro") for k, v in votos.items()},
+                    "hash_anterior": hash_anterior,
                     "hash_bloco": max([v.get("hash_bloco", "") for v in votos.values()], default="GENESIS")
                 }
 
             st.session_state["consenso_sucesso"] = True
-            st.session_state["ultimo_evento"] = evento_texto
             st.session_state["ultimo_hash"] = proposta["hash_bloco"]
+            st.session_state["ultimo_evento"] = evento_texto
 
-            st.success(f"✅ Consenso alcançado! Novo bloco adicionado. Hash: {proposta['hash_bloco'][:16]}...")
+            st.success(f"✅ Consenso alcançado! Novo bloco adicionado com hash: {proposta['hash_bloco'][:16]}...")
             registrar_auditoria("Sistema", "consenso_aprovado", f"Bloco '{evento_texto}' aceito (quorum {quorum})")
 
         except Exception as e:
@@ -227,162 +224,87 @@ with tab_main:
             st.stop()
 
     # ============================================================
-    # AUDITORIA DE HASHES (Antes ➜ Depois)
+    # AUDITORIA DE HASHES
     # ============================================================
     if st.session_state.get("consenso_sucesso", False):
         st.divider()
         st.subheader("🔍 Auditoria de Hashes (Antes ➜ Depois)")
-        st.caption("Comparação dos hashes dos nós antes e depois da adição do bloco.")
 
         comparacao_hash = []
         for nome, df in nos.items():
             if len(df) >= 2 and "hash_atual" in df.columns:
                 hash_ant = df.iloc[-2]["hash_atual"]
                 hash_atu = df.iloc[-1]["hash_atual"]
-                mudou = hash_ant != hash_atu
                 comparacao_hash.append({
                     "Nó": nome,
-                    "Hash Anterior": f"{hash_ant[:8]}...{hash_ant[-8:]}",
-                    "Hash Atual": f"{hash_atu[:8]}...{hash_atu[-8:]}",
-                    "Mudou?": "✅ Sim" if mudou else "❌ Não"
+                    "Hash Anterior": f"{hash_ant[:10]}...{hash_ant[-8:]}",
+                    "Hash Atual": f"{hash_atu[:10]}...{hash_atu[-8:]}",
+                    "Ligação": "🔗 Ok" if hash_ant != hash_atu else "⚠️ Sem mudança"
                 })
-            elif len(df) == 1:
-                hash_atu = df.iloc[-1]["hash_atual"]
-                comparacao_hash.append({
-                    "Nó": nome,
-                    "Hash Anterior": "-",
-                    "Hash Atual": f"{hash_atu[:8]}...{hash_atu[-8:]}",
-                    "Mudou?": "🆕 Novo bloco"
-                })
-            else:
-                comparacao_hash.append({
-                    "Nó": nome,
-                    "Hash Anterior": "-",
-                    "Hash Atual": "-",
-                    "Mudou?": "Sem dados"
-                })
-
         if comparacao_hash:
-            df_comp = pd.DataFrame(comparacao_hash)
-            st.dataframe(df_comp, use_container_width=True)
-            st.markdown("""
-            **🧾 Interpretação:**
-            - ✅ **Sim:** houve modificação de hash (novo bloco válido).  
-            - ❌ **Não:** sem mudanças (sem novos blocos).  
-            - 🆕 **Novo bloco:** primeiro bloco da cadeia.  
-            """)
+            st.dataframe(pd.DataFrame(comparacao_hash), use_container_width=True)
         else:
-            st.info("Sem dados de auditoria disponíveis.")
+            st.info("Nenhuma alteração registrada ainda.")
 
-        # ============================================================
-        # VISUALIZAÇÃO WEB3
-        # ============================================================
-        st.divider()
-        st.subheader("🌐 Integração Web3 (Simulada)")
-        if st.button("Mostrar / Ocultar Integração Web3", use_container_width=True):
-            st.session_state["mostrar_web3"] = not st.session_state["mostrar_web3"]
-            st.rerun()
+    # ============================================================
+    # WEB3 E FIRESTORE
+    # ============================================================
+    st.divider()
+    st.subheader("☁️ Integração Web3 e Firestore")
 
-        if st.session_state["mostrar_web3"]:
-            with st.container(border=True):
-                mostrar_demo_web3(st.session_state["ultimo_evento"], st.session_state["ultimo_hash"])
-
-        # ============================================================
-        # FIRESTORE E AUDITORIA MANUAL
-        # ============================================================
-        st.divider()
-        st.subheader("☁️ Firestore & Auditoria de Logs")
-
-        col_sync, col_audit = st.columns(2)
-
-        with col_sync:
-            with st.container(border=True):
-                st.markdown("### Sincronização com Firestore")
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    if st.button("📥 Carregar", use_container_width=True):
-                        df = carregar_blockchain_firestore()
-                        if df is not None:
-                            st.session_state.blockchain_df = df
-                            nos["Node_A"] = df
-                            st.success("Blockchain carregada da nuvem.")
-                        else:
-                            st.warning("Nenhum dado encontrado.")
-                with col2:
-                    if st.button("📤 Salvar", use_container_width=True):
-                        try:
-                            salvar_blockchain_firestore(nos["Node_A"])
-                            st.success("Blockchain salva na nuvem.")
-                        except Exception as e:
-                            st.error(f"Erro ao salvar: {e}")
-                with col3:
-                    if st.button("🧹 Resetar", use_container_width=True):
-                        limpar_blockchain_firestore()
-                        for k in list(st.session_state.keys()):
-                            del st.session_state[k]
-                        st.warning("Sessão reiniciada. Recarregue a página.")
-                        st.stop()
-
-        with col_audit:
-            with st.container(border=True):
-                st.markdown("### Log de Auditoria Manual")
-                colA, colB = st.columns([1, 2])
-                with colA:
-                    audit_actor = st.selectbox("Ator:", ["Usuário", "Sistema", "Nó de Validação"])
-                with colB:
-                    audit_msg = st.text_input("Mensagem:", "Teste de log manual.")
-                if st.button("Registrar Log", use_container_width=True):
-                    registrar_auditoria(audit_actor, "log_manual", audit_msg)
-                    st.success("Log registrado com sucesso.")
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("🔗 Mostrar Integração Web3"):
+            mostrar_demo_web3(st.session_state.get("ultimo_evento", ""), st.session_state.get("ultimo_hash", ""))
+    with col2:
+        if st.button("📤 Salvar no Firestore"):
+            try:
+                salvar_blockchain_firestore(nos["Node_A"])
+                st.success("Blockchain salva com sucesso!")
+            except Exception as e:
+                st.error(e)
 
 
 # ============================================================
-# ABA FRAUDE — ATAQUE E RECUPERAÇÃO
+# 🧩 ABA DE FRAUDE E RECUPERAÇÃO
 # ============================================================
 with tab_fraude:
-    st.header("🧩 Simulação de Ataque e Recuperação de Nós")
-    st.divider()
+    st.header("🧩 Simulação de Ataque e Recuperação")
+    st.info("Teste a resiliência da rede corrompendo e restaurando nós.")
 
-    with st.container(border=True):
-        st.subheader("1️⃣ Simular Ataque")
-        colA, colB = st.columns(2)
-        with colA:
-            node_to_corrupt = st.selectbox("Escolha o nó:", list(nos.keys()))
-            corrupt_type = st.radio("Tipo de corrupção:", ["Alterar último bloco", "Alterar hash final"])
-        with colB:
-            if st.button("⚠️ Corromper Nó", use_container_width=True):
-                df = nos[node_to_corrupt].copy()
-                if len(df) > 0:
-                    idx = len(df) - 1
-                    if corrupt_type == "Alterar último bloco":
-                        df.at[idx, "etapa"] += " (ALTERADO)"
-                        conteudo = f"{df.at[idx,'id_entrega']}-{df.at[idx,'source_center']}-{df.at[idx,'destination_name']}-{df.at[idx,'etapa']}-{df.at[idx,'timestamp']}-{df.at[idx,'risco']}"
-                        df.at[idx, "hash_atual"] = gerar_hash(conteudo, df.at[idx, "hash_anterior"])
-                    else:
-                        df.at[idx, "hash_atual"] = "FRAUDE" + str(uuid.uuid4())[:58]
-                    nos[node_to_corrupt] = df
-                    st.error(f"Nó {node_to_corrupt} corrompido!")
+    colA, colB = st.columns(2)
+    with colA:
+        node_to_corrupt = st.selectbox("Escolha o nó:", list(nos.keys()))
+        corrupt_type = st.radio("Tipo de corrupção:", ["Alterar último bloco", "Alterar hash final"])
+        if st.button("⚠️ Corromper Nó", use_container_width=True):
+            df = nos[node_to_corrupt].copy()
+            if len(df) > 0:
+                idx = len(df) - 1
+                if corrupt_type == "Alterar último bloco":
+                    df.at[idx, "etapa"] += " (ALTERADO)"
+                    conteudo = f"{df.at[idx,'id_entrega']}-{df.at[idx,'source_center']}-{df.at[idx,'destination_name']}-{df.at[idx,'etapa']}-{df.at[idx,'timestamp']}-{df.at[idx,'risco']}"
+                    df.at[idx, "hash_atual"] = gerar_hash(conteudo, df.at[idx, "hash_anterior"])
                 else:
-                    st.warning("Nenhum bloco encontrado.")
+                    df.at[idx, "hash_atual"] = "FRAUDE" + str(uuid.uuid4())[:58]
+                nos[node_to_corrupt] = df
+                st.error(f"Nó {node_to_corrupt} foi corrompido!")
+            else:
+                st.warning("Nenhum bloco encontrado.")
 
-    st.divider()
-    with st.container(border=True):
-        st.subheader("2️⃣ Detecção e Recuperação")
-        colC, colD = st.columns(2)
-        with colC:
-            if st.button("🔎 Detectar divergência", use_container_width=True):
-                if validar_consenso(nos):
-                    st.success("Todos os nós estão íntegros.")
-                else:
-                    corrompidos = detectar_no_corrompido(nos)
-                    st.error(f"Nós divergentes: {', '.join(corrompidos)}")
-        with colD:
-            if st.button("🔁 Recuperar nós", use_container_width=True):
-                ultimos = {n: df.iloc[-1]["hash_atual"] for n, df in nos.items() if len(df) > 0}
-                if ultimos:
-                    freq = {h: list(ultimos.values()).count(h) for h in ultimos.values()}
-                    hash_ok = max(freq, key=freq.get)
-                    nos = recuperar_no(nos, hash_ok)
-                    st.success("Nós restaurados com sucesso.")
-                else:
-                    st.warning("Nenhum hash válido para comparar.")
+    with colB:
+        if st.button("🔍 Detectar Divergência", use_container_width=True):
+            if validar_consenso(nos):
+                st.success("✅ Todos os nós íntegros.")
+            else:
+                corrompidos = detectar_no_corrompido(nos)
+                st.error(f"Nós divergentes: {', '.join(corrompidos)}")
+
+        if st.button("🔁 Recuperar Nós", use_container_width=True):
+            ultimos = {n: df.iloc[-1]["hash_atual"] for n, df in nos.items() if len(df) > 0}
+            if ultimos:
+                freq = {h: list(ultimos.values()).count(h) for h in ultimos.values()}
+                hash_ok = max(freq, key=freq.get)
+                nos = recuperar_no(nos, hash_ok)
+                st.success("✅ Nós restaurados com sucesso.")
+            else:
+                st.warning("Nenhum hash válido para comparar.")
