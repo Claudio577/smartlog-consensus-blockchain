@@ -1,5 +1,5 @@
 # ============================================================
-# SmartLog Blockchain — Simulador de Consenso e Fraude
+# 💠 SmartLog Blockchain — Simulador de Consenso e Fraude
 # ============================================================
 # Autor: Claudio Hideki Yoshida (Orion IA)
 # Descrição: Simulador didático de consenso PoA com auditoria, fraude e integração Firestore.
@@ -56,7 +56,7 @@ except ImportError as e:
 # CONFIGURAÇÃO DA PÁGINA
 # ============================================================
 st.set_page_config(page_title="SmartLog Blockchain", layout="wide")
-st.title("SmartLog Blockchain — Simulador de Consenso (PoA)")
+st.title("💠 SmartLog Blockchain — Simulador de Consenso (PoA)")
 st.markdown("Simulador didático de **consenso Proof-of-Authority (PoA)** com auditoria e segurança blockchain.")
 
 
@@ -242,7 +242,8 @@ with tab_main:
         comparacao_hash = []
         for nome, df in nos.items():
             if len(df) >= 2 and "hash_atual" in df.columns:
-                hash_ant = df.iloc[-2]["hash_atual"]
+                # Usa o hash utilizado no painel como referência
+                hash_ant = st.session_state.get("hash_utilizado", df.iloc[-2]["hash_atual"])
                 hash_atu = df.iloc[-1]["hash_atual"]
                 comparacao_hash.append({
                     "Nó": nome,
@@ -269,7 +270,7 @@ with tab_main:
         if st.button("📤 Salvar no Firestore"):
             try:
                 salvar_blockchain_firestore(nos["Node_A"])
-                st.success("Blockchain salva com sucesso!")
+                st.success("✅ Blockchain salva no Firestore com sucesso!")
             except Exception as e:
                 st.error(e)
 
@@ -317,4 +318,3 @@ with tab_fraude:
                 st.success("✅ Nós restaurados com sucesso.")
             else:
                 st.warning("Nenhum hash válido para comparar.")
-
