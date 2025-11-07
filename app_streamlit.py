@@ -345,50 +345,99 @@ with tab_main:
 
 
 # ============================================================
-# ABA FRAUDE — ATAQUE E RECUPERAÇÃO
+# ABA FRAUDE — ATAQUE E RECUPERAÇÃO (versão avançada)
 # ============================================================
 with tab_fraude:
     st.header("Simulação de Ataque e Recuperação de Nós")
     st.divider()
 
-    with st.container(border=True):
-        st.subheader("1. Simular Ataque")
-        colA, colB = st.columns(2)
-        with colA:
-            node_to_corrupt = st.selectbox("Escolha o nó:", list(nos.keys()))
-            corrupt_type = st.radio("Tipo de corrupção:",
-                                    ["Alterar último bloco", "Alterar hash final"])
-        with colB:
-            if st.button("Corromper Nó", use_container_width=True):
-                df = nos[node_to_corrupt].copy()
-                if len(df) > 0:
-                    idx = len(df) - 1
-                    if corrupt_type == "Alterar último bloco":
-                        df.at[idx, "etapa"] += " (ALTERADO)"
-                        conteudo = f"{df.at[idx,'id_entrega']}-{df.at[idx,'source_center']}-{df.at[idx,'destination_name']}-{df.at[idx,'etapa']}-{df.at[idx,'timestamp']}-{df.at[idx,'risco']}"
-                        df.at[idx, "hash_atual"] = gerar_hash(conteudo, df.at[idx, "hash_anterior"])
-                    else:
-                        df.at[idx, "hash_atual"] = "FRAUDE" + str(uuid.uuid4())[:58]
-                    nos[node_to_corrupt] = df
-                    st.error(f"Nó {node_to_corrupt} corrompido!")
-                else:
-                    st.warning("Nenhum bloco encontrado.")
+    colA, colB, colC = st.columns(3)
 
-    st.divider()
-    with st.container(border=True):
-        st.subheader("2. Detecção e Recuperação")
-        colC, colD = st.columns(2)
-        with colC:
-            if st.button("Detectar divergência", use_container_width=True):
-                if validar_consenso(nos):
-                    st.success("Todos os nós estão íntegros.")
+    # ============================
+    # 🎯 Seleção do nó e tipo de ataque
+    # ============================
+    with colA:
+        node_to_corrupt = st.selectbox("Escolha o nó para ataque:", list(nos.keys()))
+        corrupt_type = st.radio(
+            "Tipo de corrupção:",
+            ["Alterar último bloco (dados)", "Alterar hash final"],
+            horizontal=True
+        )
+
+    # ============================
+    # 🧨 Simular Ataque
+    # ============================
+    with colB:
+        if st.button("💣 Corromper nó (simular ataque)", key="fraude_attack"):
+            df = nos[node_to_corrupt].copy()
+            if len(df) > 0:
+                idx = len(df) - 1
+                # Salva o estado original do último bloco
+                original = df.iloc[idx].to_dict()
+
+                # --- Aplica corrupção ---
+                if corrupt_type == "Alterar último bloco (dados)":
+                    df.at[idx, "etapa"] = str(df.at[idx, "etapa"]) + " (ALTERADO MALICIOSAMENTE)"
+                    conteudo = f"{df.at[idx,'id_entrega']}-{df.at[idx,'source_center']}-{df.at[idx,'destination_name']}-{df.at[idx,'etapa']}-{df.at[idx,'timestamp']}-{df.at[idx,'risco']}"
+                    df.at[idx, "hash_atual"] = sb.gerar_hash(conteudo, df.at[idx, "hash_anterior"])
                 else:
-                    corrompidos = detectar_no_corrompido(nos)
-                    st.error(f"Nós divergentes: {', '.join(corrompidos)}")
-        with colD:
-            if st.button("Recuperar nós", use_container_width=True):
-                ultimos = {n: df.iloc[-1]["hash_atual"] for n, df in nos.items()}
-                freq = {h: list(ultimos.values()).count(h) for h in ultimos.values()}
-                hash_ok = max(freq, key=freq.get)
-                nos = recuperar_no(nos, hash_ok)
-                st.success("Nós restaurados com sucesso.")
+                    df.at[idx, "hash_atual"] = sb.gerar_hash("ATAQUE_MALICIOSO", df.at[idx, "hash_anterior"])
+
+                # Atualiza nó
+                nos[node_to_corrupt] = df
+                modificado = df.iloc[idx].to_dict()
+
+                # --- Mostra comparação didática ---
+                st.error(f"⚠️ {node_to_corrupt} corrompido (simulado).")
+                registrar_auditoria("Sistema", "no_corrompido", f"{node_to_corrupt} corrompido ({corrupt_type})")
+
+                comparacao = pd.DataFrame([
+                    {"Campo": "Etapa", "Antes": original["etapa"], "Depois": modificado["etapa"]},
+                    {"Campo": "Hash Atual", "Antes": original["hash_atual"][:16], "Depois": modificado["hash_atual"][:16]},
+                    {"Campo": "Hash Anterior", "Antes": original["hash_anterior"][:16], "Depois": modificado["hash_anterior"][:16]},
+                ])
+                st.dataframe(comparacao, use_container_width=True)
+            else:
+                st.warning("⚠️ Este nó não contém blocos para corromper.")
+
+    # ============================
+    # 🔍 Detectar divergências
+    # ============================
+    with colC:
+        if st.button("🔍 Detectar divergência", key="fraude_detect"):
+            if validar_consenso(nos):
+                st.success("🟢 Todos os nós estão íntegros e sincronizados.")
+            else:
+                st.warning("🟠 Divergência detectada entre os nós!")
+                corrompidos = detectar_no_corrompido(nos)
+                st.write("Nós corrompidos identificados:", corrompidos)
+                ultimos = {n: df.iloc[-1]["hash_atual"][:16] for n, df in nos.items()}
+                st.dataframe(pd.DataFrame(list(ultimos.items()), columns=["Nó", "Hash final"]), use_container_width=True)
+
+    # ============================
+    # 🔁 Recuperação e Resumo
+    # ============================
+    st.markdown("---")
+    if st.button("🧹 Recuperar nós corrompidos (copiar da maioria)", key="fraude_recover"):
+        try:
+            ultimos = {n: df.iloc[-1]["hash_atual"] for n, df in nos.items()}
+            freq = {h: list(ultimos.values()).count(h) for h in ultimos.values()}
+            hash_ok = max(freq, key=freq.get)
+            nos = recuperar_no(nos, hash_ok)
+            st.success("✅ Nós corrompidos restaurados com sucesso usando a blockchain da maioria.")
+        except Exception as e:
+            st.error(f"❌ Erro ao restaurar nós: {e}")
+        registrar_auditoria("Sistema", "no_recuperado", "Nós restaurados com base no hash majoritário.")
+
+    # ============================
+    # 📊 Resumo final das blockchains
+    # ============================
+    if st.button("📊 Mostrar resumo das blockchains (por nó)", key="fraude_summary"):
+        for nome, df in nos.items():
+            st.markdown(f"**{nome}** — {len(df)} blocos — hash final `{df.iloc[-1]['hash_atual'][:16]}...`")
+            st.dataframe(
+                df[["bloco_id", "id_entrega", "source_center", "destination_name", "etapa", "hash_atual"]].tail(2),
+                use_container_width=True
+            )
+
+    
