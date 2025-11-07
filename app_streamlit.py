@@ -356,7 +356,8 @@ with tab_fraude:
         colA, colB = st.columns(2)
         with colA:
             node_to_corrupt = st.selectbox("Escolha o nó:", list(nos.keys()))
-            corrupt_type = st.radio("Tipo de corrupção:", ["Alterar último bloco", "Alterar hash final"])
+            corrupt_type = st.radio("Tipo de corrupção:",
+                                    ["Alterar último bloco", "Alterar hash final"])
         with colB:
             if st.button("Corromper Nó", use_container_width=True):
                 df = nos[node_to_corrupt].copy()
@@ -386,11 +387,8 @@ with tab_fraude:
                     st.error(f"Nós divergentes: {', '.join(corrompidos)}")
         with colD:
             if st.button("Recuperar nós", use_container_width=True):
-                ultimos = {n: df.iloc[-1]["hash_atual"] for n, df in nos.items() if len(df) > 0}
-                if ultimos:
-                    freq = {h: list(ultimos.values()).count(h) for h in ultimos.values()}
-                    hash_ok = max(freq, key=freq.get)
-                    nos = recuperar_no(nos, hash_ok)
-                    st.success("Nós restaurados com sucesso.")
-                else:
-                    st.warning("Nenhum hash válido para comparar.")
+                ultimos = {n: df.iloc[-1]["hash_atual"] for n, df in nos.items()}
+                freq = {h: list(ultimos.values()).count(h) for h in ultimos.values()}
+                hash_ok = max(freq, key=freq.get)
+                nos = recuperar_no(nos, hash_ok)
+                st.success("Nós restaurados com sucesso.")
