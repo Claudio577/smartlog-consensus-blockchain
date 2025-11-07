@@ -1,5 +1,5 @@
 # ============================================================
-# 💠 SmartLog Blockchain — Simulador de Consenso e Fraude
+# SmartLog Blockchain — Simulador de Consenso e Fraude
 # ============================================================
 # Autor: Claudio Hideki Yoshida (Orion IA)
 # Descrição: Simulador didático de consenso PoA com auditoria, fraude e integração Firestore.
@@ -56,7 +56,7 @@ except ImportError as e:
 # CONFIGURAÇÃO DA PÁGINA
 # ============================================================
 st.set_page_config(page_title="SmartLog Blockchain", layout="wide")
-st.title("💠 SmartLog Blockchain — Simulador de Consenso (PoA)")
+st.title("SmartLog Blockchain — Simulador de Consenso (PoA)")
 st.markdown("Simulador didático de **consenso Proof-of-Authority (PoA)** com auditoria e segurança blockchain.")
 
 
@@ -195,39 +195,126 @@ with tab_main:
     evento_texto = st.text_input("📝 Descrição do evento:", "Entrega #104 — Saiu do depósito — SP → MG")
 
     # ============================================================
-# SIMULAÇÃO DE CONSENSO
-# ============================================================
-if st.button("🚀 Iniciar Simulação de Consenso", use_container_width=True):
-    try:
-        if modo_operacao == "Simulado (local)":
-            # 🔗 Captura o hash exato exibido no painel (último hash da maioria)
-            hashes_finais = [df.iloc[-1]["hash_atual"] for df in nos.values()]
-            hash_anterior = max(set(hashes_finais), key=hashes_finais.count)
+    # 🚀 SIMULAÇÃO DE CONSENSO
+    # ============================================================
+    if st.button("Iniciar Simulação de Consenso", use_container_width=True):
+        try:
+            if modo_operacao == "Simulado (local)":
+                hashes_finais = [df.iloc[-1]["hash_atual"] for df in nos.values()]
+                hash_anterior = max(set(hashes_finais), key=hashes_finais.count)
 
-            # 🔍 Mostra hash usado como elo anterior
-            st.session_state["hash_utilizado"] = hash_anterior
-            st.info(f"🔗 Hash anterior usado: `{hash_anterior}`")
+                st.session_state["hash_utilizado"] = hash_anterior
+                st.info(f"🔗 Hash anterior usado: `{hash_anterior}`")
 
-            # 🧩 Cria a proposta de bloco usando exatamente o mesmo hash
-            proposta = sb.propor_bloco(propositor, evento_texto, hash_anterior)
+                proposta = sb.propor_bloco(propositor, evento_texto, hash_anterior)
 
+            else:
+                hash_anterior = "GENESIS"
+                st.info("🌐 Enviando proposta aos nós Flask...")
+                votos = propor_bloco_remoto(evento_texto, hash_anterior)
+                proposta = {
+                    "propositor": propositor,
+                    "evento": evento_texto,
+                    "hash_anterior": hash_anterior,
+                    "hash_bloco": max([v.get("hash_bloco", "") for v in votos.values()], default="GENESIS")
+                }
+
+            st.session_state["consenso_sucesso"] = True
+            st.session_state["ultimo_hash"] = proposta["hash_bloco"]
+            st.session_state["ultimo_evento"] = evento_texto
+
+            novo_hash = proposta["hash_bloco"][:16]
+            st.success(f"✅ Consenso alcançado! Novo bloco adicionado com hash: {novo_hash}...")
+
+            registrar_auditoria("Sistema", "consenso_aprovado", f"Bloco '{evento_texto}' aceito (quorum {quorum})")
+
+        except Exception as e:
+            st.error(f"Erro durante consenso: {e}")
+            st.stop()
+
+    # ============================================================
+    # 🔍 AUDITORIA DE HASHES
+    # ============================================================
+    if st.session_state.get("consenso_sucesso", False):
+        st.divider()
+        st.subheader("🔍 Auditoria de Hashes (Antes ➜ Depois)")
+
+        comparacao_hash = []
+        for nome, df in nos.items():
+            if len(df) >= 2 and "hash_atual" in df.columns:
+                hash_ant = df.iloc[-2]["hash_atual"]
+                hash_atu = df.iloc[-1]["hash_atual"]
+                comparacao_hash.append({
+                    "Nó": nome,
+                    "Hash Anterior": f"{hash_ant[:10]}...{hash_ant[-8:]}",
+                    "Hash Atual": f"{hash_atu[:10]}...{hash_atu[-8:]}",
+                    "Ligação": "🔗 Ok" if hash_ant != hash_atu else "⚠️ Sem mudança"
+                })
+        if comparacao_hash:
+            st.dataframe(pd.DataFrame(comparacao_hash), use_container_width=True)
         else:
-            hash_anterior = "GENESIS"
-            st.info("🌐 Enviando proposta aos nós Flask...")
-            votos = propor_bloco_remoto(evento_texto, hash_anterior)
-            proposta = {
-                "propositor": propositor,
-                "evento": evento_texto,
-                "hash_anterior": hash_anterior,
-                "hash_bloco": max([v.get("hash_bloco", "") for v in votos.values()], default="GENESIS")
-            }
+            st.info("Nenhuma alteração registrada ainda.")
 
-        # ✅ Exibe resultado do consenso
-        novo_hash = proposta["hash_bloco"][:16]
-        st.success(f"✅ Consenso alcançado! Novo bloco adicionado com hash: {novo_hash}...")
+    # ============================================================
+    # 🌐 WEB3 + ☁️ FIRESTORE
+    # ============================================================
+    st.divider()
+    st.subheader("☁️ Integração Web3 e Firestore")
 
-        registrar_auditoria("Sistema", "consenso_aprovado", f"Bloco '{evento_texto}' aceito (quorum {quorum})")
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("🔗 Mostrar Integração Web3"):
+            mostrar_demo_web3(st.session_state.get("ultimo_evento", ""), st.session_state.get("ultimo_hash", ""))
+    with col2:
+        if st.button("📤 Salvar no Firestore"):
+            try:
+                salvar_blockchain_firestore(nos["Node_A"])
+                st.success("Blockchain salva com sucesso!")
+            except Exception as e:
+                st.error(e)
 
-    except Exception as e:
-        st.error(f"Erro durante consenso: {e}")
-        st.stop()
+
+# ============================================================
+# 🧩 ABA DE FRAUDE E RECUPERAÇÃO
+# ============================================================
+with tab_fraude:
+    st.header("🧩 Simulação de Ataque e Recuperação")
+    st.info("Teste a resiliência da rede corrompendo e restaurando nós.")
+
+    colA, colB = st.columns(2)
+    with colA:
+        node_to_corrupt = st.selectbox("Escolha o nó:", list(nos.keys()))
+        corrupt_type = st.radio("Tipo de corrupção:", ["Alterar último bloco", "Alterar hash final"])
+        if st.button("⚠️ Corromper Nó", use_container_width=True):
+            df = nos[node_to_corrupt].copy()
+            if len(df) > 0:
+                idx = len(df) - 1
+                if corrupt_type == "Alterar último bloco":
+                    df.at[idx, "etapa"] += " (ALTERADO)"
+                    conteudo = f"{df.at[idx,'id_entrega']}-{df.at[idx,'source_center']}-{df.at[idx,'destination_name']}-{df.at[idx,'etapa']}-{df.at[idx,'timestamp']}-{df.at[idx,'risco']}"
+                    df.at[idx, "hash_atual"] = gerar_hash(conteudo, df.at[idx, "hash_anterior"])
+                else:
+                    df.at[idx, "hash_atual"] = "FRAUDE" + str(uuid.uuid4())[:58]
+                nos[node_to_corrupt] = df
+                st.error(f"Nó {node_to_corrupt} foi corrompido!")
+            else:
+                st.warning("Nenhum bloco encontrado.")
+
+    with colB:
+        if st.button("🔍 Detectar Divergência", use_container_width=True):
+            if validar_consenso(nos):
+                st.success("✅ Todos os nós íntegros.")
+            else:
+                corrompidos = detectar_no_corrompido(nos)
+                st.error(f"Nós divergentes: {', '.join(corrompidos)}")
+
+        if st.button("🔁 Recuperar Nós", use_container_width=True):
+            ultimos = {n: df.iloc[-1]["hash_atual"] for n, df in nos.items() if len(df) > 0}
+            if ultimos:
+                freq = {h: list(ultimos.values()).count(h) for h in ultimos.values()}
+                hash_ok = max(freq, key=freq.get)
+                nos = recuperar_no(nos, hash_ok)
+                st.success("✅ Nós restaurados com sucesso.")
+            else:
+                st.warning("Nenhum hash válido para comparar.")
+
