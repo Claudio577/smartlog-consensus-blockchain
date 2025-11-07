@@ -1,30 +1,33 @@
 # ===========================================================
-# 📦 smartlog_blockchain.py — Módulo Base do Simulador
+# smartlog_blockchain.py — Módulo Base do Simulador
 # ===========================================================
-# Este módulo contém as funções principais do simulador de
-# blockchain e consenso para rastreamento logístico inteligente.
+# Autor: Claudio Hideki Yoshida (Orion IA)
+# Descrição: Módulo central da simulação SmartLog Blockchain
+# com todas as funções originais restauradas e correções de
+# encadeamento de hash entre nós.
 # ===========================================================
 
 import pandas as pd
 import hashlib
 from datetime import datetime
+import uuid
 import copy
 
 # ===========================================================
-# 🔹 Funções de Hash e Blockchain
+# Funções de Hash e Blockchain
 # ===========================================================
 
 def gerar_hash(conteudo, hash_anterior="0"):
     """Gera hash SHA256 de um conteúdo + hash anterior."""
-    return hashlib.sha256((str(conteudo) + hash_anterior).encode()).hexdigest()
+    return hashlib.sha256((str(conteudo) + str(hash_anterior)).encode()).hexdigest()
 
 
 def criar_blockchain_inicial(df_eventos, limite_blocos=20):
-    """Cria blockchain simulada a partir de eventos."""
+    """Cria blockchain simulada a partir de eventos iniciais."""
     blockchain = []
     hash_anterior = "0"
 
-    for i, evento in df_eventos.head(limite_blocos).iterrows():
+    for _, evento in df_eventos.head(limite_blocos).iterrows():
         conteudo = f"{evento.id_entrega}-{evento.source_center}-{evento.destination_name}-{evento.etapa}-{evento.timestamp}-{evento.risco}"
         hash_atual = gerar_hash(conteudo, hash_anterior)
         bloco = {
@@ -55,13 +58,12 @@ def validar_blockchain(blockchain_df):
             return False
     return True
 
-
 # ===========================================================
-# 🔹 Funções de Nós e Consenso
+# Funções de Nós e Consenso
 # ===========================================================
 
 def criar_nos(blockchain_df, total=3):
-    """Cria múltiplos nós a partir da blockchain base."""
+    """Cria múltiplos nós idênticos a partir da blockchain base."""
     nos = {}
     for i in range(total):
         nos[f"Node_{chr(65 + i)}"] = blockchain_df.copy()
@@ -70,13 +72,13 @@ def criar_nos(blockchain_df, total=3):
 
 def validar_consenso(nos):
     """Verifica se todos os nós possuem o mesmo último hash."""
-    ultimos = [n.iloc[-1]["hash_atual"] for n in nos.values()]
+    ultimos = [n.iloc[-1]["hash_atual"] for n in nos.values() if not n.empty]
     return len(set(ultimos)) == 1
 
 
 def detectar_no_corrompido(nos):
     """Detecta quais nós estão fora do consenso."""
-    ultimos = {nome: n.iloc[-1]["hash_atual"] for nome, n in nos.items()}
+    ultimos = {nome: n.iloc[-1]["hash_atual"] for nome, n in nos.items() if not n.empty}
     freq = {}
     for h in ultimos.values():
         freq[h] = freq.get(h, 0) + 1
@@ -85,26 +87,24 @@ def detectar_no_corrompido(nos):
 
 
 def recuperar_no(nos, hash_ok):
-    """Recupera nós corrompidos, copiando blockchain da maioria."""
+    """Recupera nós corrompidos copiando blockchain da maioria."""
     fonte = None
     for nome, df in nos.items():
-        if df.iloc[-1]["hash_atual"] == hash_ok:
+        if not df.empty and df.iloc[-1]["hash_atual"] == hash_ok:
             fonte = df.copy()
             break
 
-    # ⚙️ Correção — checa explicitamente se fonte é None
     if fonte is None or fonte.empty:
         raise ValueError("Nenhum nó válido encontrado para restauração.")
 
     for nome, df in nos.items():
-        if df.iloc[-1]["hash_atual"] != hash_ok:
+        if df.empty or df.iloc[-1]["hash_atual"] != hash_ok:
             nos[nome] = fonte.copy()
 
     return nos
 
-
 # ===========================================================
-# 🔹 Funções de Consenso (Assinatura / Quorum)
+# Funções de Assinatura e Proposta
 # ===========================================================
 
 def simular_chaves_privadas(nos):
@@ -118,9 +118,9 @@ def assinar_bloco(chave_privada, hash_bloco):
 
 
 def propor_bloco(nodo_nome, evento, hash_anterior):
-    """Cria proposta de novo bloco (não adiciona ainda)."""
-    conteudo = f"{evento}-{hash_anterior}"
-    hash_bloco = gerar_hash(conteudo)
+    """Cria proposta de novo bloco com hash calculado e encadeado."""
+    conteudo = f"{evento}-{datetime.now().isoformat()}"
+    hash_bloco = gerar_hash(conteudo, hash_anterior)
     return {
         "propositor": nodo_nome,
         "evento": evento,
@@ -133,40 +133,66 @@ def propor_bloco(nodo_nome, evento, hash_anterior):
 def votar_proposta(proposta, nos, chaves_privadas):
     """Simula votação e assinatura pelos nós."""
     for n in nos.keys():
-        ultimo_hash = nos[n].iloc[-1]["hash_atual"]
+        ultimo_hash = nos[n].iloc[-1]["hash_atual"] if not nos[n].empty else "0"
         if ultimo_hash == proposta["hash_anterior"]:
             proposta["assinaturas"][n] = assinar_bloco(chaves_privadas[n], proposta["hash_bloco"])
+        else:
+            proposta["assinaturas"][n] = "Recusado"
     return proposta
 
-
-# outras funções acima...
-
-import hashlib
+# ===========================================================
+# Aplicação do Consenso e Atualização dos Nós
+# ===========================================================
 
 def aplicar_consenso(proposta, nos, quorum=2):
-    """Aplica o consenso e adiciona o bloco se houver quorum suficiente."""
+    """Aplica o consenso e adiciona o bloco idêntico em todos os nós."""
     votos_validos = sum(1 for a in proposta["assinaturas"].values() if not a.startswith("Recusado"))
 
     if votos_validos >= quorum:
         for nome, df in nos.items():
-            # 🔹 Gera o hash do novo bloco
-            conteudo = f"{proposta['evento']}{df.iloc[-1]['hash_atual']}"
-            hash_atual = hashlib.sha256(conteudo.encode()).hexdigest()
-
+            # Adiciona o novo bloco com hash sincronizado
             novo_bloco = {
                 "bloco_id": len(df) + 1,
-                "evento": proposta["evento"],
-                "hash_anterior": df.iloc[-1]["hash_atual"],
-                "hash_atual": hash_atual
+                "id_entrega": str(uuid.uuid4())[:8],
+                "source_center": "Desconhecido",
+                "destination_name": "Desconhecido",
+                "etapa": proposta["evento"],
+                "timestamp": datetime.now(),
+                "risco": "Baixo",
+                "hash_anterior": proposta["hash_anterior"],   # Mesmo hash anterior exibido
+                "hash_atual": proposta["hash_bloco"]          # Mesmo hash calculado (verde)
             }
-
-            df = df._append(novo_bloco, ignore_index=True)
-            nos[nome] = df
-
+            nos[nome] = pd.concat([df, pd.DataFrame([novo_bloco])], ignore_index=True)
         return True
     else:
         return False
 
+# ===========================================================
+# Auditoria e Exportação
+# ===========================================================
+
+def auditar_nos(nos):
+    """Cria um resumo dos hashes finais de cada nó."""
+    auditoria = []
+    for nome, df in nos.items():
+        if not df.empty:
+            auditoria.append({
+                "nó": nome,
+                "hash_final": df.iloc[-1]["hash_atual"],
+                "tamanho": len(df)
+            })
+    return pd.DataFrame(auditoria)
+
+
+def exportar_blockchain(blockchain_df, caminho="blockchain_export.csv"):
+    """Exporta a blockchain para CSV."""
+    blockchain_df.to_csv(caminho, index=False)
+    return caminho
+
+
+# ===========================================================
+# Exportação pública
+# ===========================================================
 
 __all__ = [
     "gerar_hash",
@@ -179,5 +205,8 @@ __all__ = [
     "simular_chaves_privadas",
     "propor_bloco",
     "votar_proposta",
-    "aplicar_consenso"
+    "aplicar_consenso",
+    "auditar_nos",
+    "exportar_blockchain"
 ]
+
