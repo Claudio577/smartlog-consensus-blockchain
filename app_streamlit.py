@@ -206,9 +206,10 @@ with tab_main:
                 st.session_state["hash_utilizado"] = hash_anterior
                 st.info(f"🔗 Hash anterior usado: `{hash_anterior}`")
 
+                # 🔹 Cria proposta e aplica consenso nos nós locais
                 proposta = sb.propor_bloco(propositor, evento_texto, hash_anterior)
-                # ✅ Aplica o consenso localmente e adiciona o novo bloco
                 sb.aplicar_consenso(proposta, nos, quorum)
+
             else:
                 hash_anterior = "GENESIS"
                 st.info("🌐 Enviando proposta aos nós Flask...")
@@ -227,6 +228,11 @@ with tab_main:
             novo_hash = proposta["hash_bloco"][:16]
             st.success(f"✅ Consenso alcançado! Novo bloco adicionado com hash: {novo_hash}...")
 
+            # 🔹 Revalida blockchain após consenso
+            for nome, df in nos.items():
+                if not sb.validar_blockchain(df):
+                    st.warning(f"⚠️ {nome}: cadeia com divergência detectada!")
+
             registrar_auditoria("Sistema", "consenso_aprovado", f"Bloco '{evento_texto}' aceito (quorum {quorum})")
 
         except Exception as e:
@@ -243,8 +249,7 @@ with tab_main:
         comparacao_hash = []
         for nome, df in nos.items():
             if len(df) >= 2 and "hash_atual" in df.columns:
-                # Usa o hash utilizado no painel como referência
-                hash_ant = st.session_state.get("hash_utilizado", df.iloc[-2]["hash_atual"])
+                hash_ant = df.iloc[-2]["hash_atual"]
                 hash_atu = df.iloc[-1]["hash_atual"]
                 comparacao_hash.append({
                     "Nó": nome,
@@ -319,3 +324,4 @@ with tab_fraude:
                 st.success("✅ Nós restaurados com sucesso.")
             else:
                 st.warning("Nenhum hash válido para comparar.")
+
