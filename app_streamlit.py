@@ -197,10 +197,17 @@ with tab_main:
     if st.button("🚀 Iniciar Simulação de Consenso", use_container_width=True):
         try:
             if modo_operacao == "Simulado (local)":
-                hashes_finais = [df.iloc[-1]["hash_atual"] for df in nos.values()]
-                hash_anterior = max(set(hashes_finais), key=hashes_finais.count)
-                proposta = sb.propor_bloco(propositor, evento_texto, hash_anterior)
-                proposta = sb.votar_proposta(proposta, nos, chaves)
+                # 🔗 Captura o hash exato exibido no painel (último hash da maioria)
+    hashes_finais = [df.iloc[-1]["hash_atual"] for df in nos.values()]
+hash_anterior = max(set(hashes_finais), key=hashes_finais.count)
+
+# 🔍 Mostra hash usado como elo anterior
+st.session_state["hash_utilizado"] = hash_anterior
+st.info(f"🔗 Hash anterior usado: `{hash_anterior}`")
+
+# 🧩 Cria a proposta de bloco usando exatamente o mesmo hash
+proposta = sb.propor_bloco(propositor, evento_texto, hash_anterior)
+
             else:
                 hash_anterior = "GENESIS"
                 st.info("🌐 Enviando proposta aos nós Flask...")
