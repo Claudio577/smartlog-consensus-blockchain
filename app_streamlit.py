@@ -194,7 +194,10 @@ with tab_main:
 
     evento_texto = st.text_input("📝 Descrição do evento:", "Entrega #104 — Saiu do depósito — SP → MG")
 
-    if st.button("🚀 Iniciar Simulação de Consenso", use_container_width=True):
+    # ============================================================
+# SIMULAÇÃO DE CONSENSO
+# ============================================================
+if st.button("🚀 Iniciar Simulação de Consenso", use_container_width=True):
     try:
         if modo_operacao == "Simulado (local)":
             # 🔗 Captura o hash exato exibido no painel (último hash da maioria)
@@ -219,7 +222,7 @@ with tab_main:
                 "hash_bloco": max([v.get("hash_bloco", "") for v in votos.values()], default="GENESIS")
             }
 
-        # ✅ Novo hash exibido com segurança
+        # ✅ Exibe resultado do consenso
         novo_hash = proposta["hash_bloco"][:16]
         st.success(f"✅ Consenso alcançado! Novo bloco adicionado com hash: {novo_hash}...")
 
@@ -228,4 +231,3 @@ with tab_main:
     except Exception as e:
         st.error(f"Erro durante consenso: {e}")
         st.stop()
-
