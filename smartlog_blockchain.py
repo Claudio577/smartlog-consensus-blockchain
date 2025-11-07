@@ -151,6 +151,7 @@ def aplicar_consenso(proposta, nos, quorum=2):
     votos_validos = sum(1 for a in proposta["assinaturas"].values() if not a.startswith("Recusado"))
 
     if votos_validos >= quorum:
+        # 🔹 Cria e adiciona o mesmo bloco em todos os nós
         for nome, df in nos.items():
             novo_bloco = {
                 "bloco_id": len(df) + 1,
@@ -160,14 +161,20 @@ def aplicar_consenso(proposta, nos, quorum=2):
                 "etapa": proposta["evento"],
                 "timestamp": datetime.now(),
                 "risco": "Baixo",
-                "hash_anterior": proposta["hash_anterior"],   # 🔗 idêntico ao painel
-                "hash_atual": proposta["hash_bloco"]          # ✅ mesmo hash da proposta
+                "hash_anterior": proposta["hash_anterior"],   # igual ao painel
+                "hash_atual": proposta["hash_bloco"]          # mesmo hash calculado
             }
-            nos[nome] = pd.concat([df, pd.DataFrame([novo_bloco])], ignore_index=True)
+            df = pd.concat([df, pd.DataFrame([novo_bloco])], ignore_index=True)
+            nos[nome] = df.copy()
+
+        # 🔁 Sincroniza o hash final de todos os nós (garante igualdade total)
+        ultimo_hash = proposta["hash_bloco"]
+        for nome in nos.keys():
+            nos[nome].iloc[-1, nos[nome].columns.get_loc("hash_atual")] = ultimo_hash
+
         return True
     else:
         return False
-
 
 # ===========================================================
 # 🔹 Exportação do módulo
