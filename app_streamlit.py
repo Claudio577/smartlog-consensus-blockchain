@@ -291,10 +291,15 @@ with tab_main:
 
                 st.success(f"Consenso alcançado! Novo bloco adicionado. Hash: {proposta['hash_bloco'][:16]}...")
                 registrar_auditoria("Sistema", "consenso_aprovado", f"Bloco '{evento_texto}' aceito (quorum {quorum})")
-         # 🧩 Exibir as blockchains replicadas e o gráfico
-            if st.session_state.modo_operacao == "Distribuído (rede)":
-            st.info("Visualizando ledger distribuído dos nós Flask...")
-            exibir_blockchains_distribuidas()
+
+                # 🧩 Exibir as blockchains replicadas e o gráfico
+                if st.session_state.modo_operacao == "Distribuído (rede)":
+                    st.info("Visualizando ledger distribuído dos nós Flask...")
+                    exibir_blockchains_distribuidas()
+
+            else:
+                st.warning("Quorum insuficiente. Bloco rejeitado.")
+
 
             else:
                 st.warning("Quorum insuficiente. Bloco rejeitado.")
