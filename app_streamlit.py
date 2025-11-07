@@ -153,6 +153,8 @@ def propor_bloco_remoto(evento_texto, hash_anterior):
         except Exception as e:
             votos[nome] = {"erro": str(e)}
     return votos
+
+
 # ============================================================
 # 🔍 VISUALIZAÇÃO DAS BLOCKCHAINS DISTRIBUÍDAS
 # ============================================================
@@ -214,6 +216,7 @@ def exibir_blockchains_distribuidas():
                             c.edge(f"{nome}_{blocos[i-1]['index']}", f"{nome}_{blocos[i]['index']}", color="gray")
 
         st.graphviz_chart(dot, use_container_width=True)
+        st.success("✅ Rede PoA sincronizada — todos os nós mantêm o mesmo ledger distribuído.")
 
     except Exception as e:
         st.warning(f"Não foi possível gerar gráfico: {e}")
@@ -300,172 +303,6 @@ with tab_main:
             else:
                 st.warning("Quorum insuficiente. Bloco rejeitado.")
 
-
-            else:
-                st.warning("Quorum insuficiente. Bloco rejeitado.")
-
         except Exception as e:
             st.error(f"Erro na proposta/votação: {e}")
             st.stop()
-
-    # ============================================================
-    # AUDITORIA DE HASHES
-    # ============================================================
-    if st.session_state.get("consenso_sucesso", False):
-        st.divider()
-        st.subheader("Auditoria de Hashes (Antes ➜ Depois)")
-        st.caption("Comparação dos hashes dos nós antes e depois da adição do bloco.")
-
-        comparacao_hash = []
-        for nome, df in nos.items():
-            if len(df) >= 2 and "hash_atual" in df.columns:
-                hash_ant = df.iloc[-2]["hash_atual"]
-                hash_atu = df.iloc[-1]["hash_atual"]
-                mudou = hash_ant != hash_atu
-                comparacao_hash.append({
-                    "Nó": nome,
-                    "Hash Anterior": f"{hash_ant[:8]}...{hash_ant[-8:]}",
-                    "Hash Atual": f"{hash_atu[:8]}...{hash_atu[-8:]}",
-                    "Mudou?": "Sim" if mudou else "Não"
-                })
-            elif len(df) == 1:
-                hash_atu = df.iloc[-1]["hash_atual"]
-                comparacao_hash.append({
-                    "Nó": nome,
-                    "Hash Anterior": "-",
-                    "Hash Atual": f"{hash_atu[:8]}...{hash_atu[-8:]}",
-                    "Mudou?": "Novo bloco"
-                })
-            else:
-                comparacao_hash.append({
-                    "Nó": nome,
-                    "Hash Anterior": "-",
-                    "Hash Atual": "-",
-                    "Mudou?": "Sem dados"
-                })
-
-        if comparacao_hash:
-            df_comp = pd.DataFrame(comparacao_hash)
-            st.dataframe(df_comp, use_container_width=True)
-        else:
-            st.info("Sem dados de auditoria disponíveis.")
-
-        st.divider()
-        st.subheader("Adicionar Novo Bloco")
-        if st.button("Criar Nova Proposta de Bloco", use_container_width=True):
-            for key in ["web3_evento_texto", "web3_hash", "mostrar_web3", "consenso_sucesso", "df_auditoria_hash"]:
-                st.session_state[key] = None
-            st.rerun()
-
-        # ============================================================
-        # VISUALIZAÇÃO WEB3
-        # ============================================================
-        if st.session_state.get("ultimo_evento"):
-            st.divider()
-            if st.button("Mostrar / Ocultar Integração Web3", use_container_width=True):
-                st.session_state["mostrar_web3"] = not st.session_state["mostrar_web3"]
-                st.rerun()
-
-            if st.session_state["mostrar_web3"]:
-                with st.container(border=True):
-                    mostrar_demo_web3(st.session_state["ultimo_evento"], st.session_state["ultimo_hash"])
-
-        # ============================================================
-        # FIRESTORE E AUDITORIA MANUAL
-        # ============================================================
-        st.divider()
-        st.subheader("Firestore & Auditoria de Logs")
-
-        col_sync, col_audit = st.columns(2)
-
-        with col_sync:
-            with st.container(border=True):
-                st.markdown("### Sincronização com Firestore")
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    if st.button("Carregar", use_container_width=True):
-                        df = carregar_blockchain_firestore()
-                        if df is not None:
-                            st.session_state.blockchain_df = df
-                            nos["Node_A"] = df
-                            st.success("Blockchain carregada da nuvem.")
-                        else:
-                            st.warning("Nenhum dado encontrado.")
-                with col2:
-                    if st.button("Salvar", use_container_width=True):
-                        try:
-                            salvar_blockchain_firestore(nos["Node_A"])
-                            st.success("Blockchain salva na nuvem.")
-                        except Exception as e:
-                            st.error(f"Erro ao salvar: {e}")
-                with col3:
-                    if st.button("Resetar", use_container_width=True):
-                        limpar_blockchain_firestore()
-                        for k in list(st.session_state.keys()):
-                            del st.session_state[k]
-                        st.error("Sessão reiniciada. Recarregue a página.")
-                        st.stop()
-
-        with col_audit:
-            with st.container(border=True):
-                st.markdown("### Log de Auditoria Manual")
-                colA, colB = st.columns([1, 2])
-                with colA:
-                    audit_actor = st.selectbox("Ator:", ["Usuário", "Sistema", "Nó de Validação"])
-                with colB:
-                    audit_msg = st.text_input("Mensagem:", "Teste de log manual.")
-                if st.button("Registrar Log", use_container_width=True):
-                    registrar_auditoria(audit_actor, "log_manual", audit_msg)
-                    st.success("Log registrado no Firestore.")
-
-
-# ============================================================
-# ABA FRAUDE — ATAQUE E RECUPERAÇÃO
-# ============================================================
-with tab_fraude:
-    st.header("Simulação de Ataque e Recuperação de Nós")
-    st.divider()
-
-    with st.container(border=True):
-        st.subheader("1. Simular Ataque")
-        colA, colB = st.columns(2)
-        with colA:
-            node_to_corrupt = st.selectbox("Escolha o nó:", list(nos.keys()))
-            corrupt_type = st.radio("Tipo de corrupção:", ["Alterar último bloco", "Alterar hash final"])
-        with colB:
-            if st.button("Corromper Nó", use_container_width=True):
-                df = nos[node_to_corrupt].copy()
-                if len(df) > 0:
-                    idx = len(df) - 1
-                    if corrupt_type == "Alterar último bloco":
-                        df.at[idx, "etapa"] += " (ALTERADO)"
-                        conteudo = f"{df.at[idx,'id_entrega']}-{df.at[idx,'source_center']}-{df.at[idx,'destination_name']}-{df.at[idx,'etapa']}-{df.at[idx,'timestamp']}-{df.at[idx,'risco']}"
-                        df.at[idx, "hash_atual"] = gerar_hash(conteudo, df.at[idx, "hash_anterior"])
-                    else:
-                        df.at[idx, "hash_atual"] = "FRAUDE" + str(uuid.uuid4())[:58]
-                    nos[node_to_corrupt] = df
-                    st.error(f"Nó {node_to_corrupt} corrompido!")
-                else:
-                    st.warning("Nenhum bloco encontrado.")
-
-    st.divider()
-    with st.container(border=True):
-        st.subheader("2. Detecção e Recuperação")
-        colC, colD = st.columns(2)
-        with colC:
-            if st.button("Detectar divergência", use_container_width=True):
-                if validar_consenso(nos):
-                    st.success("Todos os nós estão íntegros.")
-                else:
-                    corrompidos = detectar_no_corrompido(nos)
-                    st.error(f"Nós divergentes: {', '.join(corrompidos)}")
-        with colD:
-            if st.button("Recuperar nós", use_container_width=True):
-                ultimos = {n: df.iloc[-1]["hash_atual"] for n, df in nos.items() if len(df) > 0}
-                if ultimos:
-                    freq = {h: list(ultimos.values()).count(h) for h in ultimos.values()}
-                    hash_ok = max(freq, key=freq.get)
-                    nos = recuperar_no(nos, hash_ok)
-                    st.success("Nós restaurados com sucesso.")
-                else:
-                    st.warning("Nenhum hash válido para comparar.")
