@@ -226,6 +226,12 @@ with tab_main:
 
                 st.success(f"Consenso alcançado! Novo bloco adicionado. Hash: {proposta['hash_bloco'][:16]}...")
                 registrar_auditoria("Sistema", "consenso_aprovado", f"Bloco '{evento_texto}' aceito (quorum {quorum})")
+                # Exibir o hash completo do bloco PoA para copiar no Remix
+                st.text_input(
+                    "🔗 Hash do Bloco Confirmado (para colar no Remix):",
+                    st.session_state["ultimo_hash"]
+                )
+
             else:
                 st.warning("Quorum insuficiente. Bloco rejeitado.")
 
