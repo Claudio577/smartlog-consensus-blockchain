@@ -3,12 +3,13 @@
 # ===========================================================
 # Autor: Claudio Hideki Yoshida (Orion IA)
 # Descrição: Módulo central da simulação SmartLog Blockchain
-# **Refatorado para modelo Permissionado (Proof-of-Authority)**,
-# eliminando a lógica de mineração (Proof-of-Work).
+# Refatorado para modelo Permissionado (Proof-of-Authority),
+# agora com suporte a múltiplos eventos (lotes logísticos).
 # ===========================================================
 
 import pandas as pd
 import hashlib
+import json
 from datetime import datetime
 import uuid
 import copy
@@ -20,39 +21,33 @@ import copy
 def gerar_hash(conteudo, hash_anterior):
     """
     Calcula o hash SHA256 do bloco de forma determinística
-    apenas com base no conteúdo e no hash anterior (PoA Simples).
+    com base no conteúdo (string/JSON) e no hash anterior.
     """
     bloco_str = f"{conteudo}{hash_anterior}"
     return hashlib.sha256(bloco_str.encode()).hexdigest()
 
 
-def criar_blockchain_inicial(df_eventos, limite_blocos=20):
-    """Cria blockchain simulada a partir de eventos iniciais."""
+def criar_blockchain_inicial(df_eventos, limite_blocos=3, tamanho_lote=2):
+    """
+    Cria blockchain inicial simulada com blocos de múltiplos eventos.
+    Cada bloco representa um 'lote logístico'.
+    """
     blockchain = []
     hash_anterior = "0"
 
-    for _, evento in df_eventos.head(limite_blocos).iterrows():
-        # 🟢 GERAÇÃO DO TX_ID: Campo de rastreabilidade
+    for i in range(0, min(len(df_eventos), limite_blocos * tamanho_lote), tamanho_lote):
+        lote = df_eventos.iloc[i:i + tamanho_lote].to_dict(orient="records")
         tx_id = str(uuid.uuid4())
-        
-        # O conteúdo para o hash AGORA inclui o tx_id
-        conteudo = f"{evento.id_entrega}-{evento.source_center}-{evento.destination_name}-{evento.etapa}-{evento.timestamp}-{evento.risco}-{tx_id}"
-        
-        # ⚙️ Hash Simples (sem Nonce ou PoW)
+        conteudo = json.dumps(lote, ensure_ascii=False, sort_keys=True)
         hash_atual = gerar_hash(conteudo, hash_anterior)
-        
+
         bloco = {
             "bloco_id": len(blockchain) + 1,
-            "id_entrega": evento.id_entrega,
-            "source_center": evento.source_center,
-            "destination_name": evento.destination_name,
-            "etapa": evento.etapa,
-            "timestamp": evento.timestamp,
-            "risco": evento.risco,
+            "eventos": conteudo,  # JSON string do lote
             "hash_anterior": hash_anterior,
             "hash_atual": hash_atual,
-            "tx_id": tx_id, # <--- RASTREABILIDADE MANTIDA
-            # ❌ NONCE (PoW) REMOVIDO
+            "tx_id": tx_id,
+            "timestamp": datetime.now()
         }
         blockchain.append(bloco)
         hash_anterior = hash_atual
@@ -63,27 +58,23 @@ def criar_blockchain_inicial(df_eventos, limite_blocos=20):
 def validar_blockchain(blockchain_df):
     """
     Valida integridade da blockchain simulada (PoA).
-    Verifica apenas o encadeamento de hash.
+    Verifica o encadeamento de hashes e o conteúdo dos blocos.
     """
     for i in range(1, len(blockchain_df)):
         atual = blockchain_df.iloc[i]
         anterior = blockchain_df.iloc[i - 1]
-        
-        # Conteúdo para recalcular o hash (DEVE incluir o TX_ID)
-        conteudo = f"{atual.id_entrega}-{atual.source_center}-{atual.destination_name}-{atual.etapa}-{atual.timestamp}-{atual.risco}-{atual.tx_id}"
-        
-        # 1. Recalcular hash usando a função simples (PoA)
+
+        conteudo = atual.eventos
         hash_recalc = gerar_hash(conteudo, atual.hash_anterior)
-        
-        # 2. Verificar o encadeamento
+
         if atual.hash_anterior != anterior.hash_atual or atual.hash_atual != hash_recalc:
-            
             print(f"❌ Falha de validação no Bloco {atual.bloco_id}:")
             print(f"Hash Anterior incorreto? {atual.hash_anterior != anterior.hash_atual}")
             print(f"Hash Atual incorreto? {atual.hash_atual != hash_recalc}")
             return False
-            
+
     return True
+
 
 # ===========================================================
 # Funções de Nós e Consenso (PoA)
@@ -130,6 +121,7 @@ def recuperar_no(nos, hash_ok):
 
     return nos
 
+
 # ===========================================================
 # Funções de Assinatura e Proposta
 # ===========================================================
@@ -144,76 +136,72 @@ def assinar_bloco(chave_privada, hash_bloco):
     return hashlib.sha256((chave_privada + ":" + hash_bloco).encode()).hexdigest()
 
 
-def propor_bloco(nodo_nome, evento, hash_anterior):
-    """Cria proposta de novo bloco com TX_ID e hash simples."""
-    
+def propor_bloco(nodo_nome, eventos, hash_anterior):
+    """
+    Cria proposta de novo bloco (PoA) com suporte a múltiplos eventos logísticos.
+    'eventos' pode ser uma string (único evento) ou lista/dict (lote).
+    """
     tx_id_proposta = str(uuid.uuid4())
-    
-    # Conteúdo para o hash
-    conteudo = f"{evento}-{datetime.now().isoformat()}-{tx_id_proposta}"
-    
-    # ⚙️ Hash Simples (sem Nonce)
+
+    # Converter lista de eventos em JSON determinístico
+    if isinstance(eventos, (list, dict)):
+        conteudo_serializado = json.dumps(eventos, ensure_ascii=False, sort_keys=True)
+    else:
+        conteudo_serializado = str(eventos)
+
+    conteudo = f"{conteudo_serializado}-{datetime.now().isoformat()}-{tx_id_proposta}"
     hash_bloco = gerar_hash(conteudo, hash_anterior)
-    
+
     return {
         "propositor": nodo_nome,
-        "evento": evento,
+        "eventos": eventos,  # Lote de eventos
         "hash_anterior": hash_anterior,
         "hash_bloco": hash_bloco,
         "tx_id_proposta": tx_id_proposta,
-        # ❌ NONCE REMOVIDO DA PROPOSTA
         "assinaturas": {}
     }
 
 
 def votar_proposta(proposta, nos, chaves_privadas):
-    """Simula votação e assinatura pelos nós."""
+    """Simula votação e assinatura pelos nós (Proof-of-Authority)."""
     for n in nos.keys():
         ultimo_hash = nos[n].iloc[-1]["hash_atual"] if not nos[n].empty else "0"
-        
-        # Na PoA, o voto é baseado APENAS na validade do hash anterior (encadeamento)
         if ultimo_hash == proposta["hash_anterior"]:
             proposta["assinaturas"][n] = assinar_bloco(chaves_privadas[n], proposta["hash_bloco"])
         else:
             proposta["assinaturas"][n] = "Recusado"
     return proposta
 
+
 # ===========================================================
 # Aplicação do Consenso e Atualização dos Nós
 # ===========================================================
 
 def aplicar_consenso(proposta, nos, quorum=2):
-    """Aplica o consenso e adiciona o bloco idêntico em todos os nós."""
+    """
+    Aplica o consenso e adiciona o bloco idêntico em todos os nós.
+    Agora aceita múltiplos eventos (lote logístico).
+    """
     votos_validos = sum(1 for a in proposta["assinaturas"].values() if not a.startswith("Recusado"))
 
     if votos_validos >= quorum:
-        
-        # Regras finais
         tx_id_final = proposta["tx_id_proposta"]
-        # ❌ NONCE FINAL REMOVIDO
-        
+
         for nome, df in nos.items():
-            
             hash_atual = proposta["hash_bloco"]
             hash_anterior = proposta["hash_anterior"]
-            
-            # Novo bloco
-            novo_bloco = {
+
+            bloco = {
                 "bloco_id": len(df) + 1,
-                "id_entrega": str(uuid.uuid4())[:8],
-                "source_center": "Desconhecido",
-                "destination_name": "Desconhecido",
-                "etapa": proposta["evento"],
+                "eventos": json.dumps(proposta["eventos"], ensure_ascii=False),
                 "timestamp": datetime.now(),
-                "risco": "Baixo",
                 "hash_anterior": hash_anterior,
                 "hash_atual": hash_atual,
                 "tx_id": tx_id_final,
-                # ❌ NONCE REMOVIDO DO NOVO BLOCO
             }
 
-            nos[nome] = pd.concat([df, pd.DataFrame([novo_bloco])], ignore_index=True)
-            
+            nos[nome] = pd.concat([df, pd.DataFrame([bloco])], ignore_index=True)
+
         return True, tx_id_final
     else:
         return False, None
