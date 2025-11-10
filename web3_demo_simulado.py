@@ -22,45 +22,50 @@ SMART_CONTRACT_ADDRESS = gerar_endereco_contrato()
 SENDER_ADDRESS = gerar_endereco_contrato() 
 
 
-def mostrar_demo_web3(evento_texto, hash_bloco_confirmado):
+def mostrar_demo_web3(lote_eventos, hash_bloco_confirmado):
     """
     Função que simula a interação com um Smart Contract na Web3 
     após a confirmação do bloco no consenso PoA.
-    
+
     Args:
-        evento_texto (str): O dado logístico que foi escrito no bloco.
-        hash_bloco_confirmado (str): O hash do bloco confirmado pelo PoA.
+        lote_eventos (list[dict]): Lista de eventos logísticos incluídos no bloco.
+        hash_bloco_confirmado (str): Hash do bloco confirmado pelo PoA.
     """
-    st.subheader("Integração Web3 (Simulada)")
-    
+    st.subheader("🌐 Integração Web3 (Simulada)")
+
     st.markdown("✅ **Transação do Contrato Inteligente Enviada com Sucesso**")
-    
+
     # Simula um breve tempo de espera para confirmação
-    with st.spinner("Aguardando confirmação e indexação do evento no Contrato Inteligente..."):
-        # Simulate a brief waiting time for confirmation
+    with st.spinner("Aguardando confirmação e indexação do lote no Contrato Inteligente..."):
         time.sleep(1.5)
 
     # Geração de dados Web3 simulados
     tx_hash = gerar_hash_tx()
-    gas_used = random.randint(21000, 50000)
-    
+    gas_used = random.randint(21000, 70000)
+
     col1, col2 = st.columns(2)
 
     with col1:
         st.metric(label="Endereço do Contrato (Ledger)", value=f"{SMART_CONTRACT_ADDRESS[:16]}...")
         st.metric(label="Hash da Transação (TX)", value=f"{tx_hash[:16]}...")
         st.metric(label="Bloco na Rede (Simulado)", value=random.randint(5000000, 9000000))
-        
+
     with col2:
         st.metric(label="Remetente da Transação (Propositor)", value=f"{SENDER_ADDRESS[:16]}...")
         st.metric(label="Gás Consumido (Simulado)", value=f"{gas_used} Gwei")
         st.metric(label="Status", value="Sucesso", delta_color="normal")
-        
+
     st.markdown("---")
+
     st.markdown(f"""
     <p style='font-size: 14px;'>
     **Dados Persistidos no Contrato:** O <code>hash_bloco_confirmado</code> 
-    (<code>{hash_bloco_confirmado[:24]}...</code>) e o dado logístico 
-    foram registrados no Smart Contract em uma plataforma DLT permissionada (como Ethereum, Hyperledger Fabric ou Quorum). O registro deste hash garante a imutabilidade do dado logístico, funcionando como a prova de autenticidade (Proof-of-Existence) na DLT.
+    (<code>{hash_bloco_confirmado[:24]}...</code>) foi registrado em um Smart Contract 
+    (DLT permissionada simulada, como Ethereum, Polygon ou Hyperledger Fabric).  
+    Esse registro garante a imutabilidade e autenticidade do lote de eventos logísticos.
     </p>
     """, unsafe_allow_html=True)
+
+    # Exibe os eventos que foram incluídos neste bloco
+    st.markdown("### 📦 Eventos incluídos neste bloco:")
+    st.json(lote_eventos)
