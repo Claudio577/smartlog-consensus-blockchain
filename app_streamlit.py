@@ -399,9 +399,11 @@ with tab_fraude:
 
                 # --- Aplica corrupção ---
                 # Corrupção de bloco no novo formato (JSON de eventos)
+                # --- Aplica corrupção ---
                 if corrupt_type == "Alterar último bloco (dados)":
-                     eventos_json = df.at[idx, "eventos"]
-                     df.at[idx, "eventos"] = str(eventos_json) + " 🚨 (BLOCO ALTERADO)"
+                    # Corrupção de bloco no novo formato (JSON de eventos)
+                    eventos_json = df.at[idx, "eventos"]
+                    df.at[idx, "eventos"] = str(eventos_json) + " 🚨 (BLOCO ALTERADO)"
                     conteudo_corrompido = str(df.at[idx, "eventos"])
                     df.at[idx, "hash_atual"] = sb.gerar_hash(conteudo_corrompido, df.at[idx, "hash_anterior"])
                 else:
