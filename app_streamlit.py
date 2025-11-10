@@ -307,15 +307,18 @@ with tab_main:
         # ============================================================
         # VISUALIZAÇÃO WEB3
         # ============================================================
-        if st.session_state.get("ultimo_evento"):
+        if st.session_state.get("ultimo_lote"):
             st.divider()
-            if st.button("Mostrar / Ocultar Integração Web3", use_container_width=True):
-                st.session_state["mostrar_web3"] = not st.session_state["mostrar_web3"]
-                st.rerun()
+            st.subheader("Integração Web3 (Simulada)")
 
-            if st.session_state["mostrar_web3"]:
+            if st.button("🌐 Mostrar / Ocultar Integração Web3", use_container_width=True):
+            st.session_state["mostrar_web3"] = not st.session_state["mostrar_web3"]
+            st.rerun()
+
+            if st.session_state.get("mostrar_web3", False):
                 with st.container(border=True):
                     mostrar_demo_web3(st.session_state["ultimo_lote"], st.session_state["ultimo_hash"])
+
 
         # ============================================================
         # FIRESTORE E AUDITORIA MANUAL
