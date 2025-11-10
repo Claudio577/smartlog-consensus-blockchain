@@ -312,8 +312,8 @@ with tab_main:
             st.subheader("Integração Web3 (Simulada)")
 
             if st.button("🌐 Mostrar / Ocultar Integração Web3", use_container_width=True):
-            st.session_state["mostrar_web3"] = not st.session_state["mostrar_web3"]
-            st.rerun()
+                st.session_state["mostrar_web3"] = not st.session_state["mostrar_web3"]
+                st.rerun()
 
             if st.session_state.get("mostrar_web3", False):
                 with st.container(border=True):
