@@ -398,12 +398,14 @@ with tab_fraude:
                 original = df.iloc[idx].to_dict()
 
                 # --- Aplica corrupção ---
+                # Corrupção de bloco no novo formato (JSON de eventos)
                 if corrupt_type == "Alterar último bloco (dados)":
-                    df.at[idx, "etapa"] = str(df.at[idx, "etapa"]) + " (ALTERADO MALICIOSAMENTE)"
-                    conteudo = f"{df.at[idx,'id_entrega']}-{df.at[idx,'source_center']}-{df.at[idx,'destination_name']}-{df.at[idx,'etapa']}-{df.at[idx,'timestamp']}-{df.at[idx,'risco']}"
-                    df.at[idx, "hash_atual"] = sb.gerar_hash(conteudo, df.at[idx, "hash_anterior"])
+                     eventos_json = df.at[idx, "eventos"]
+                     df.at[idx, "eventos"] = str(eventos_json) + " 🚨 (BLOCO ALTERADO)"
+                    conteudo_corrompido = str(df.at[idx, "eventos"])
+                    df.at[idx, "hash_atual"] = sb.gerar_hash(conteudo_corrompido, df.at[idx, "hash_anterior"])
                 else:
-                    df.at[idx, "hash_atual"] = sb.gerar_hash("ATAQUE_MALICIOSO", df.at[idx, "hash_anterior"])
+                     df.at[idx, "hash_atual"] = sb.gerar_hash("ATAQUE_MALICIOSO", df.at[idx, "hash_anterior"])
 
                 # Atualiza nó
                 nos[node_to_corrupt] = df
@@ -457,9 +459,10 @@ with tab_fraude:
     if st.button("📊 Mostrar resumo das blockchains (por nó)", key="fraude_summary"):
         for nome, df in nos.items():
             st.markdown(f"**{nome}** — {len(df)} blocos — hash final `{df.iloc[-1]['hash_atual'][:16]}...`")
-            st.dataframe(
-                df[["bloco_id", "id_entrega", "source_center", "destination_name", "etapa", "hash_atual"]].tail(2),
-                use_container_width=True
-            )
+            if "eventos" in df.columns:
+                st.dataframe(df[["bloco_id", "timestamp", "hash_atual", "eventos"]].tail(2), use_container_width=True)
+            else:
+                st.dataframe(df.tail(2), use_container_width=True)
+
 
     
