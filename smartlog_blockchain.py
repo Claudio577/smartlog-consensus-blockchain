@@ -27,27 +27,34 @@ def gerar_hash(conteudo, hash_anterior):
     return hashlib.sha256(bloco_str.encode()).hexdigest()
 
 
-def criar_blockchain_inicial(df_eventos, limite_blocos=3, tamanho_lote=2):
-    """
-    Cria blockchain inicial simulada com blocos de múltiplos eventos.
-    Cada bloco representa um 'lote logístico'.
-    """
+def criar_blockchain_inicial(df_eventos, limite_blocos=20):
+    """Cria blockchain simulada a partir de eventos iniciais."""
     blockchain = []
     hash_anterior = "0"
 
-    for i in range(0, min(len(df_eventos), limite_blocos * tamanho_lote), tamanho_lote):
-        lote = df_eventos.iloc[i:i + tamanho_lote].to_dict(orient="records")
+    for _, evento in df_eventos.head(limite_blocos).iterrows():
         tx_id = str(uuid.uuid4())
+
+        # Converte o evento em dicionário puro (string segura)
+        lote = evento.to_dict()
+        for k, v in lote.items():
+            # Converte datetime/Timestamp para string ISO
+            if isinstance(v, (datetime, pd.Timestamp)):
+                lote[k] = v.isoformat()
+
+        # Serializa o conteúdo para garantir que é JSON válido
         conteudo = json.dumps(lote, ensure_ascii=False, sort_keys=True)
+
+        # Gera hash
         hash_atual = gerar_hash(conteudo, hash_anterior)
 
         bloco = {
             "bloco_id": len(blockchain) + 1,
-            "eventos": conteudo,  # JSON string do lote
+            "eventos": lote,
             "hash_anterior": hash_anterior,
             "hash_atual": hash_atual,
             "tx_id": tx_id,
-            "timestamp": datetime.now()
+            "timestamp": datetime.now().isoformat()
         }
         blockchain.append(bloco)
         hash_anterior = hash_atual
