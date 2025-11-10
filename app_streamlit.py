@@ -315,7 +315,7 @@ with tab_main:
 
             if st.session_state["mostrar_web3"]:
                 with st.container(border=True):
-                    mostrar_demo_web3(st.session_state["ultimo_evento"], st.session_state["ultimo_hash"])
+                    mostrar_demo_web3(st.session_state["ultimo_lote"], st.session_state["ultimo_hash"])
 
         # ============================================================
         # FIRESTORE E AUDITORIA MANUAL
