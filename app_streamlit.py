@@ -193,47 +193,70 @@ with tab_main:
         quorum = st.slider("Quorum mínimo:", 1, len(nos), 2)
         st.caption(f"Quorum necessário: {quorum}/{len(nos)}")
 
-    evento_texto = st.text_input("Descrição do evento:", "Entrega #104 — Saiu do depósito — SP → MG")
+    # ============================================================
+    # FORMULÁRIO DE LOTE DE EVENTOS
+    # ============================================================
+    st.subheader("Cadastro de Lote de Entregas")
 
-    if st.button("Iniciar Simulação de Consenso", use_container_width=True):
+    num_eventos = st.number_input("Número de eventos no lote:", min_value=1, max_value=10, value=3)
+
+    lote_eventos = []
+    for i in range(int(num_eventos)):
+        with st.expander(f"Evento {i+1}", expanded=False):
+            id_entrega = st.text_input(f"ID da entrega {i+1}", f"{100+i}")
+            origem = st.text_input(f"Origem {i+1}", "Depósito_SP")
+            destino = st.text_input(f"Destino {i+1}", "Centro_MG")
+            etapa = st.selectbox(f"Etapa {i+1}", ["Saiu do depósito", "Em rota", "Chegou ao destino"])
+            risco = st.selectbox(f"Risco {i+1}", ["Baixo", "Médio", "Alto"], index=0)
+            lote_eventos.append({
+                "id_entrega": id_entrega,
+                "origem": origem,
+                "destino": destino,
+                "etapa": etapa,
+                "risco": risco,
+                "timestamp": datetime.now().isoformat()
+            })
+
+    # ============================================================
+    # SIMULAÇÃO DE CONSENSO
+    # ============================================================
+    if st.button("🚀 Iniciar Simulação de Consenso", use_container_width=True):
         st.session_state["consenso_sucesso"] = False
-        st.info(f"O nó {propositor} propôs o bloco: '{evento_texto}'")
+        st.info(f"O nó {propositor} propôs um novo bloco contendo {len(lote_eventos)} eventos.")
 
         try:
             if st.session_state.modo_operacao == "Simulado (local)":
-                hashes_finais = [df.iloc[-1]["hash_atual"] for df in nos.values()]
                 hash_anterior = nos[propositor].iloc[-1]["hash_atual"]
-                proposta = sb.propor_bloco(propositor, evento_texto, hash_anterior)
+                proposta = sb.propor_bloco(propositor, lote_eventos, hash_anterior)
                 proposta = sb.votar_proposta(proposta, nos, chaves)
-                sb.aplicar_consenso(proposta, nos, quorum)
-
+                sucesso, tx_id = sb.aplicar_consenso(proposta, nos, quorum)
             else:
                 hash_anterior = "GENESIS"
                 st.info("Enviando proposta de bloco aos nós reais...")
-                votos = propor_bloco_remoto(evento_texto, hash_anterior)
+                votos = propor_bloco_remoto(lote_eventos, hash_anterior)
                 proposta = {
                     "propositor": propositor,
-                    "evento": evento_texto,
+                    "eventos": lote_eventos,
                     "assinaturas": {k: v.get("assinatura", "erro") for k, v in votos.items()},
                     "hash_bloco": max([v.get("hash_bloco", "") for v in votos.values()], default="GENESIS")
                 }
+                sucesso = True
 
-            sucesso = True
             if sucesso:
                 st.session_state["consenso_sucesso"] = True
-                st.session_state["ultimo_evento"] = evento_texto
+                st.session_state["ultimo_lote"] = lote_eventos
                 st.session_state["ultimo_hash"] = proposta["hash_bloco"]
 
-                st.success(f"Consenso alcançado! Novo bloco adicionado. Hash: {proposta['hash_bloco'][:16]}...")
-                registrar_auditoria("Sistema", "consenso_aprovado", f"Bloco '{evento_texto}' aceito (quorum {quorum})")
-                # Exibir o hash completo do bloco PoA para copiar no Remix
-                st.text_input(
-                    "🔗 Hash do Bloco Confirmado (para colar no Remix):",
-                    st.session_state["ultimo_hash"]
-                )
+                st.success(f"✅ Consenso alcançado! Novo bloco adicionado com {len(lote_eventos)} eventos.")
+                st.text_input("🔗 Hash do Bloco Confirmado:", proposta["hash_bloco"])
+
+                st.markdown("### 📦 Eventos incluídos neste bloco:")
+                st.json(lote_eventos)
+
+                registrar_auditoria("Sistema", "consenso_aprovado", f"Bloco com {len(lote_eventos)} eventos aceito (quorum {quorum})")
 
             else:
-                st.warning("Quorum insuficiente. Bloco rejeitado.")
+                st.warning("⚠️ Quorum insuficiente. Bloco rejeitado.")
 
         except Exception as e:
             st.error(f"Erro na proposta/votação: {e}")
@@ -280,13 +303,6 @@ with tab_main:
             st.dataframe(df_comp, use_container_width=True)
         else:
             st.info("Sem dados de auditoria disponíveis.")
-
-        st.divider()
-        st.subheader("Adicionar Novo Bloco")
-        if st.button("Criar Nova Proposta de Bloco", use_container_width=True):
-            for key in ["web3_evento_texto", "web3_hash", "mostrar_web3", "consenso_sucesso", "df_auditoria_hash"]:
-                st.session_state[key] = None
-            st.rerun()
 
         # ============================================================
         # VISUALIZAÇÃO WEB3
