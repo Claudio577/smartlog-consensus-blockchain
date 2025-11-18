@@ -9,6 +9,150 @@ import hashlib
 import uuid
 import requests
 
+# ============================================================
+# 🎨 ESTILO IA-LABS (Clean / Profissional / Azul Corporativo)
+# ============================================================
+st.markdown("""
+<style>
+
+/* ======================== */
+/*   ESTRUTURA GERAL        */
+/* ======================== */
+body {
+    background-color: #f5f7fa;
+    font-family: 'Poppins', sans-serif;
+    color: #1a1a1a;
+}
+
+/* Esconde o menu lateral */
+[data-testid="stSidebarNav"] { display: none !important; }
+
+/* Remove bordas padrão feias */
+.css-18e3th9, .css-1d391kg { padding: 0 !important; }
+
+/* Remove toolbar superior */
+header { visibility: hidden; }
+
+/* ======================== */
+/*   TÍTULOS                */
+/* ======================== */
+
+h1, h2, h3, h4 {
+    font-weight: 600;
+    color: #2D8CFF !important;
+    letter-spacing: -0.5px;
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+/* Subtítulo em laranja suave */
+.subtitle-orange {
+    color: #FF6F61 !important;
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+
+/* Texto descritivo */
+p, li, label {
+    font-size: 0.95rem;
+    line-height: 1.5rem;
+    color: #333;
+}
+
+/* ======================== */
+/*   CARDS PROFISSIONAIS    */
+/* ======================== */
+
+.card {
+    background-color: #ffffff;
+    border-radius: 18px;
+    padding: 25px;
+    margin-top: 20px;
+    margin-bottom: 15px;
+    box-shadow: 0px 4px 15px rgba(0,0,0,0.06);
+    border: 1px solid #e6eaf0;
+}
+
+.card-title {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #2D8CFF;
+    margin-bottom: 0.3rem;
+}
+
+/* ======================== */
+/*   BOTÕES CORPORATIVOS    */
+/* ======================== */
+
+div.stButton > button {
+    background-color: #2D8CFF;
+    color: white;
+    border-radius: 12px;
+    padding: 0.6rem 1.2rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    border: none;
+    transition: 0.3s ease-in-out;
+}
+
+div.stButton > button:hover {
+    background-color: #1b6fd8;
+    transform: scale(1.02);
+}
+
+/* Botão de perigo (fraude) */
+button[kind="secondary"]:hover {
+    background-color: #ff3b3b !important;
+    color: white !important;
+}
+
+/* ======================== */
+/*   EXPANDERS              */
+/* ======================== */
+
+.streamlit-expanderHeader {
+    font-size: 1.05rem !important;
+    font-weight: 600 !important;
+    color: #2D8CFF !important;
+}
+
+.streamlit-expanderContent {
+    background-color: #fafcff;
+    border-radius: 10px;
+    padding: 5px 15px !important;
+}
+
+/* ======================== */
+/*    IMAGENS REDUZIDAS     */
+/* ======================== */
+
+img {
+    max-width: 350px !important;
+    height: auto !important;
+    border-radius: 12px;
+    box-shadow: 0px 4px 10px rgba(0,0,0,0.06);
+}
+
+/* ======================== */
+/*    DIVISOR E SEÇÕES      */
+/* ======================== */
+
+hr, .divider {
+    border: 0;
+    height: 1px;
+    background: linear-gradient(to right, #dce3ee, #a1b7d6, #dce3ee);
+    margin: 25px 0;
+}
+
+/* Mensagens de status */
+.stAlert {
+    border-radius: 12px !important;
+    padding: 10px !important;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
 # ------------------------------------------------------------
 # Importações internas (com fallback)
 # ------------------------------------------------------------
