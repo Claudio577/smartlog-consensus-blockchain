@@ -3,7 +3,7 @@
 # ===========================================================
 # Autor: Claudio Hideki Yoshida (Orion IA)
 # Versão revisada com bloco gênesis determinístico e correções
-# no hashing para funcionamento correto do consenso PoA.
+# no hashing para funcionamento correto do consenso PoA
 # ===========================================================
 
 import pandas as pd
