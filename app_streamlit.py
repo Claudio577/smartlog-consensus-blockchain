@@ -122,7 +122,11 @@ with tab_main:
     st.header("Fluxo de Consenso Proof-of-Authority (PoA)")
 
     consenso_ok = sb.validar_consenso(nos)
-    st.success("Sistema sincronizado.") if consenso_ok else st.warning("Divergência encontrada!")
+    if consenso_ok:
+    st.success("Sistema sincronizado.")
+    else:
+    st.warning("Divergência encontrada!")
+
 
     # --------------------------------------------------------
     # Status da Rede
