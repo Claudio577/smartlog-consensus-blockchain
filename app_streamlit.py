@@ -420,31 +420,32 @@ with tab_fraude:
                 st.error(f"⚠️ {node_to_corrupt} corrompido (simulado).")
                 registrar_auditoria("Sistema", "no_corrompido", f"{node_to_corrupt} corrompido ({corrupt_type})")
 
-                # A comparação agora precisa respeitar o novo formato dos blocos
-eventos_ant = original.get("eventos", {})
-eventos_dep = modified.get("eventos", {})
+                # ================================
+                # 🔍 Comparação entre ANTES e DEPOIS
+                # ================================
+                eventos_ant = original.get("eventos", {})
+                eventos_dep = modificado.get("eventos", {})
 
-comparacao = pd.DataFrame([
-    {
-        "Campo": "Eventos (Antes)",
-        "Antes": json.dumps(eventos_ant, ensure_ascii=False, indent=2),
-        "Depois": json.dumps(eventos_dep, ensure_ascii=False, indent=2)
-    },
-    {
-        "Campo": "Hash Atual",
-        "Antes": original["hash_atual"][:16],
-        "Depois": modified["hash_atual"][:16],
-    },
-    {
-        "Campo": "Hash Anterior",
-        "Antes": original["hash_anterior"][:16],
-        "Depois": modified["hash_anterior"][:16],
-    }
-])
+                comparacao = pd.DataFrame([
+                    {
+                        "Campo": "Eventos (Antes)",
+                        "Antes": json.dumps(eventos_ant, ensure_ascii=False, indent=2),
+                        "Depois": json.dumps(eventos_dep, ensure_ascii=False, indent=2)
+                    },
+                    {
+                        "Campo": "Hash Atual",
+                        "Antes": original["hash_atual"][:16],
+                        "Depois": modificado["hash_atual"][:16],
+                    },
+                    {
+                        "Campo": "Hash Anterior",
+                        "Antes": original["hash_anterior"][:16],
+                        "Depois": modificado["hash_anterior"][:16],
+                    }
+                ])
 
                 st.dataframe(comparacao, use_container_width=True)
-            else:
-                st.warning("⚠️ Este nó não contém blocos para corromper.")
+
 
     # ============================
     # 🔍 Detectar divergências
