@@ -4,7 +4,7 @@ import time
 import hashlib
 from datetime import datetime
 
-# Funções auxiliares para gerar dados realistas e simulados
+# Funções auxiliares para gerar dados realistas e simulados.
 def gerar_hash_tx():
     """Gera um hash de transação simulado (64 caracteres hexadecimais)."""
     # Generate a simulated transaction hash (64 hexadecimal characters).
