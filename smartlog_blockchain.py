@@ -13,7 +13,7 @@ from datetime import datetime
 import uuid
 
 # ===========================================================
-# Funções de Hash e Blockchain
+# Funções de Hash (Determinísticas)
 # ===========================================================
 
 def gerar_hash(conteudo, hash_anterior):
@@ -56,7 +56,7 @@ def criar_blockchain_inicial(df_eventos=None, limite_blocos=20):
         return pd.DataFrame(blockchain)
 
     for _, evento in df_eventos.head(limite_blocos).iterrows():
-        # Serializa evento
+
         lote = evento.to_dict()
         for k, v in lote.items():
             if isinstance(v, (datetime, pd.Timestamp)):
@@ -71,7 +71,7 @@ def criar_blockchain_inicial(df_eventos=None, limite_blocos=20):
             "hash_anterior": hash_anterior,
             "hash_atual": hash_atual,
             "tx_id": f"INIT_{len(blockchain)}",
-            "timestamp": GENESIS_TIMESTAMP  # manter determinístico
+            "timestamp": GENESIS_TIMESTAMP  # determinístico
         }
 
         blockchain.append(bloco)
@@ -148,8 +148,7 @@ def assinar_bloco(chave_privada, hash_bloco):
 
 def propor_bloco(nodo_nome, eventos, hash_anterior):
     """
-    Cria proposta de bloco.  
-    **Removido timestamp variável para evitar divergência.**
+    Cria proposta de bloco. Sem uso de timestamp dinâmico.
     """
     tx_id = str(uuid.uuid4())
 
@@ -158,9 +157,7 @@ def propor_bloco(nodo_nome, eventos, hash_anterior):
     else:
         conteudo = str(eventos)
 
-    # Sem datetime.now() para manter determinístico
     conteudo_final = f"{conteudo}-{tx_id}"
-
     hash_bloco = gerar_hash(conteudo_final, hash_anterior)
 
     return {
@@ -172,13 +169,33 @@ def propor_bloco(nodo_nome, eventos, hash_anterior):
         "assinaturas": {}
     }
 
+
+def votar_proposta(proposta, nos, chaves_privadas):
+    """
+    Simula votação PoA: nó só vota se estiver sincronizado.
+    """
+    for n in nos.keys():
+        ultimo_hash = nos[n].iloc[-1]["hash_atual"]
+
+        if ultimo_hash == proposta["hash_anterior"]:
+            assinatura = assinar_bloco(chaves_privadas[n], proposta["hash_bloco"])
+            proposta["assinaturas"][n] = assinatura
+        else:
+            proposta["assinaturas"][n] = "Recusado"
+
+    return proposta
+
+
 # ===========================================================
 # Aplicação do Consenso
 # ===========================================================
 
 def aplicar_consenso(proposta, nos, quorum=2):
     """Adiciona o bloco final idêntico em todos os nós."""
-    votos_validos = sum(1 for a in proposta["assinaturas"].values() if not a.startswith("Recusado"))
+    votos_validos = sum(
+        1 for a in proposta["assinaturas"].values()
+        if not a.startswith("Recusado")
+    )
 
     if votos_validos < quorum:
         return False, None
@@ -189,7 +206,7 @@ def aplicar_consenso(proposta, nos, quorum=2):
         bloco = {
             "bloco_id": len(df),
             "eventos": json.dumps(proposta["eventos"], ensure_ascii=False),
-            "timestamp": GENESIS_TIMESTAMP,  # determinístico
+            "timestamp": GENESIS_TIMESTAMP,
             "hash_anterior": proposta["hash_anterior"],
             "hash_atual": proposta["hash_bloco"],
             "tx_id": tx_id_final
@@ -217,7 +234,7 @@ def auditar_nos(nos):
 
 
 # ===========================================================
-# Exportações do módulo
+# Exportações públicas
 # ===========================================================
 
 __all__ = [
@@ -230,7 +247,7 @@ __all__ = [
     "recuperar_no",
     "simular_chaves_privadas",
     "propor_bloco",
-    "votar_proposta",      
+    "votar_proposta",
     "aplicar_consenso",
     "auditar_nos"
 ]
