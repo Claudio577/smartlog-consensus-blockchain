@@ -230,7 +230,8 @@ __all__ = [
     "recuperar_no",
     "simular_chaves_privadas",
     "propor_bloco",
-    "votar_proposta",
+    "votar_proposta",      
     "aplicar_consenso",
     "auditar_nos"
 ]
+
