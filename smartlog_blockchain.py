@@ -27,39 +27,52 @@ def gerar_hash(conteudo, hash_anterior):
     return hashlib.sha256(bloco_str.encode()).hexdigest()
 
 
-def criar_blockchain_inicial(df_eventos, limite_blocos=20):
-    """Cria blockchain simulada a partir de eventos iniciais."""
-    blockchain = []
-    hash_anterior = "0"
+def criar_blockchain_inicial(df_eventos=None, limite_blocos=20):
+    """
+    Cria blockchain inicial com bloco gênesis determinístico.
+    Mesmo conteúdo = mesmo hash em todos os nós.
+    """
+    GENESIS_CONTENT = "SMARTLOG_GENESIS_BLOCK_V1"
+    GENESIS_HASH = hashlib.sha256(GENESIS_CONTENT.encode()).hexdigest()
 
-    for _, evento in df_eventos.head(limite_blocos).iterrows():
-        tx_id = str(uuid.uuid4())
+    bloco_genesis = {
+        "bloco_id": 0,
+        "eventos": {},
+        "hash_anterior": "0",
+        "hash_atual": GENESIS_HASH,
+        "tx_id": "GENESIS",
+        "timestamp": "2024-01-01T00:00:00Z"
+    }
 
-        # Converte o evento em dicionário puro (string segura)
-        lote = evento.to_dict()
-        for k, v in lote.items():
-            # Converte datetime/Timestamp para string ISO
-            if isinstance(v, (datetime, pd.Timestamp)):
-                lote[k] = v.isoformat()
+    blockchain = [bloco_genesis]
 
-        # Serializa o conteúdo para garantir que é JSON válido
-        conteudo = json.dumps(lote, ensure_ascii=False, sort_keys=True)
+    # Se quiser pré-carregar eventos iniciais, pode criar blocos depois do gênesis.
+    if df_eventos is not None:
+        hash_anterior = GENESIS_HASH
 
-        # Gera hash
-        hash_atual = gerar_hash(conteudo, hash_anterior)
+        for _, evento in df_eventos.head(limite_blocos).iterrows():
+            lote = evento.to_dict()
+            for k, v in lote.items():
+                if isinstance(v, (datetime, pd.Timestamp)):
+                    lote[k] = v.isoformat()
 
-        bloco = {
-            "bloco_id": len(blockchain) + 1,
-            "eventos": lote,
-            "hash_anterior": hash_anterior,
-            "hash_atual": hash_atual,
-            "tx_id": tx_id,
-            "timestamp": datetime.now().isoformat()
-        }
-        blockchain.append(bloco)
-        hash_anterior = hash_atual
+            conteudo = json.dumps(lote, ensure_ascii=False, sort_keys=True)
+            hash_atual = gerar_hash(conteudo, hash_anterior)
+
+            bloco = {
+                "bloco_id": len(blockchain),
+                "eventos": lote,
+                "hash_anterior": hash_anterior,
+                "hash_atual": hash_atual,
+                "tx_id": f"INIT_{len(blockchain)}",
+                "timestamp": "2024-01-01T00:00:00Z"   # determinístico
+            }
+
+            blockchain.append(bloco)
+            hash_anterior = hash_atual
 
     return pd.DataFrame(blockchain)
+
 
 
 def validar_blockchain(blockchain_df):
