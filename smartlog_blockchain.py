@@ -110,9 +110,19 @@ def criar_nos(blockchain_df, total=3):
     return {f"Node_{chr(65+i)}": blockchain_df.copy() for i in range(total)}
 
 def validar_consenso(nos):
-    """Verifica se todos possuem mesmo último hash."""
-    ultimos = [df.iloc[-1]["hash_atual"] for df in nos.values()]
+    """Verifica se todos os nós possuem o mesmo último hash, ignorando nós vazios."""
+    ultimos = []
+
+    for df in nos.values():
+        if df is None or len(df) == 0:
+            # nó vazio → marcamos como hash especial
+            ultimos.append("VAZIO")
+        else:
+            ultimos.append(df.iloc[-1]["hash_atual"])
+
+    # Se todos iguais → consenso ok
     return len(set(ultimos)) == 1
+
 
 def detectar_no_corrompido(nos):
     """Identifica nós divergentes."""
